@@ -10,7 +10,11 @@ API_URL = os.getenv('API_URL', 'http://localhost:8000')
 st.sidebar.title("Navigation")
 sujet = st.sidebar.radio(
     "Choisir un sujet",
-    options=["Sujet 1 – Maintenance prédictive", "Sujet 2 – Churn client"],
+    options=[
+        "Sujet 1 – Maintenance prédictive",
+        "Sujet 2 – Churn client",
+        "Sujet 3 – ROI Marketing",
+    ],
 )
 
 st.sidebar.divider()
@@ -251,6 +255,123 @@ elif sujet == "Sujet 2 – Churn client":
                     else:
                         st.success(f"✅ {res['label']}")
                     st.metric("Probabilité de churn", f"{res['probabilite_churn'] * 100:.2f}%")
+
+        except Exception as e:
+            st.error(f"Erreur de connexion à l'API : {e}")
+
+
+# ── SUJET 3 ───────────────────────────────────────────────────────────────────
+
+elif sujet == "Sujet 3 – ROI Marketing":
+    S3_MODEL_LABELS = {
+        "linear_regression": "Régression Linéaire",
+        "random_forest":     "Random Forest",
+        "xgboost":           "XGBoost",
+        "mlp":               "MLP (Deep Learning)",
+    }
+    PERF_COLORS = {
+        "Low":    ("🔴", "error"),
+        "Medium": ("🟡", "warning"),
+        "High":   ("🟢", "success"),
+    }
+
+    st.title("📈 Optimisation du ROI Marketing")
+    st.markdown(
+        "Simulez l'impact d'un mix média sur les ventes et estimez le ROI "
+        "de votre campagne en temps réel."
+    )
+    st.divider()
+
+    # ── Inputs budgétaires ────────────────────────────────────────────────────
+    st.subheader("💰 Budget média")
+    col1, col2, col3, col4 = st.columns(4)
+    with col1:
+        tv = st.number_input("Budget TV (M€)", value=50.0, min_value=0.0, step=1.0)
+    with col2:
+        radio = st.number_input("Budget Radio (M€)", value=18.0, min_value=0.0, step=0.5)
+    with col3:
+        social_media = st.number_input("Budget Social Media (M€)", value=3.0, min_value=0.0, step=0.1)
+    with col4:
+        influencer = st.selectbox("Type d'influenceur", options=["Macro", "Mega", "Micro", "Nano"])
+
+    # ── KPIs de la configuration actuelle ────────────────────────────────────
+    total_budget = tv + radio + social_media
+    st.divider()
+    st.subheader("📊 Indicateurs du scénario")
+    k1, k2, k3, k4 = st.columns(4)
+    k1.metric("Budget total", f"{total_budget:.1f} M€")
+    k2.metric("Part TV",          f"{tv / total_budget * 100:.1f} %" if total_budget > 0 else "–")
+    k3.metric("Part Radio",       f"{radio / total_budget * 100:.1f} %" if total_budget > 0 else "–")
+    k4.metric("Part Social Media", f"{social_media / total_budget * 100:.1f} %" if total_budget > 0 else "–")
+
+    # ── Répartition budgétaire (camembert simplifié) ──────────────────────────
+    if total_budget > 0:
+        budget_df = pd.DataFrame({
+            "Canal":  ["TV", "Radio", "Social Media"],
+            "Budget": [tv, radio, social_media],
+        })
+        st.bar_chart(budget_df.set_index("Canal"), height=220)
+
+    st.divider()
+
+    selected_models = st.multiselect(
+        "🤖 Modèles à comparer",
+        options=list(S3_MODEL_LABELS.keys()),
+        default=["linear_regression"],
+        format_func=lambda x: S3_MODEL_LABELS[x],
+    )
+
+    st.divider()
+
+    if st.button("🔍 Lancer la prédiction", use_container_width=True):
+        if not selected_models:
+            st.warning("Veuillez sélectionner au moins un modèle.")
+            st.stop()
+        if total_budget <= 0:
+            st.warning("Le budget total doit être supérieur à 0.")
+            st.stop()
+
+        payload = {
+            "tv":           tv,
+            "radio":        radio,
+            "social_media": social_media,
+            "influencer":   influencer,
+            "models":       selected_models,
+        }
+
+        try:
+            response = requests.post(f"{API_URL}/sujet-3/predict", json=payload)
+            response.raise_for_status()
+            results = response.json()["results"]
+
+            st.divider()
+            st.subheader("📊 Résultats par modèle")
+
+            cols = st.columns(len(results))
+            for col, (model_key, res) in zip(cols, results.items()):
+                with col:
+                    st.markdown(f"### {S3_MODEL_LABELS[model_key]}")
+                    st.metric("Ventes prédites", f"{res['sales_prediction']:.2f} M€")
+                    st.metric("ROI estimé", f"{res['roi_estimate']:.2f}x" if res['roi_estimate'] else "–")
+
+                    perf = res["performance"]
+                    icon, severity = PERF_COLORS[perf]
+                    getattr(st, severity)(f"{icon} Performance : **{perf}**")
+
+            # ── Tableau comparatif ────────────────────────────────────────────
+            if len(results) > 1:
+                st.divider()
+                st.subheader("📋 Tableau comparatif")
+                summary = pd.DataFrame([
+                    {
+                        "Modèle":           S3_MODEL_LABELS[k],
+                        "Ventes prédites (M€)": round(v["sales_prediction"], 2),
+                        "ROI estimé":       round(v["roi_estimate"], 2) if v["roi_estimate"] else None,
+                        "Performance":      v["performance"],
+                    }
+                    for k, v in results.items()
+                ])
+                st.dataframe(summary, hide_index=True, use_container_width=True)
 
         except Exception as e:
             st.error(f"Erreur de connexion à l'API : {e}")
