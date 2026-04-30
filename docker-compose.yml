@@ -1,5 +1,6 @@
 services:
   fastapi:
+    container_name: fastapi_efrei_data_science
     build:
       context: .
       dockerfile: FastAPI/Dockerfile
@@ -15,6 +16,7 @@ services:
       start_period: 10s
 
   streamlit:
+    container_name: streamlit_efrei_data_science
     build:
       context: .
       dockerfile: Streamlit/Dockerfile
