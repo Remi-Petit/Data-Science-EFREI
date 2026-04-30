@@ -68,17 +68,29 @@ def plot_roc_curves(trained_models: dict, X_test, y_test) -> plt.Figure:
 def plot_feature_importance(
     trained_models: dict,
     features: list,
-    model_name: str = 'Random Forest'
-) -> tuple[plt.Figure, pd.Series]:
-    """Bar chart de l'importance des features (modèles basés sur les arbres)."""
-    pipe = trained_models[model_name]
-    importances = pipe.named_steps['clf'].feature_importances_
-    feat_imp = pd.Series(importances, index=features).sort_values(ascending=False)
+) -> tuple[plt.Figure, pd.DataFrame]:
+    """Bar chart de l'importance des features pour tous les modèles à arbres."""
+    tree_models = {
+        name: pipe
+        for name, pipe in trained_models.items()
+        if hasattr(pipe.named_steps['clf'], 'feature_importances_')
+    }
 
-    fig, ax = plt.subplots(figsize=(9, 5))
-    feat_imp.plot(kind='bar', color='steelblue', edgecolor='white', ax=ax)
-    ax.set_title(f'Importance des features – {model_name}')
-    ax.set_ylabel('Importance')
-    ax.tick_params(axis='x', rotation=30)
+    n = len(tree_models)
+    fig, axes = plt.subplots(1, n, figsize=(9 * n, 5), sharey=False)
+    if n == 1:
+        axes = [axes]
+
+    all_imp = {}
+    for ax, (name, pipe) in zip(axes, tree_models.items()):
+        importances = pipe.named_steps['clf'].feature_importances_
+        feat_imp = pd.Series(importances, index=features).sort_values(ascending=False)
+        all_imp[name] = feat_imp
+        feat_imp.plot(kind='bar', color='steelblue', edgecolor='white', ax=ax)
+        ax.set_title(f'Importance des features – {name}')
+        ax.set_ylabel('Importance')
+        ax.tick_params(axis='x', rotation=30)
+
+    plt.suptitle('Importance des features (modèles à arbres)', fontsize=14)
     plt.tight_layout()
-    return fig, feat_imp
+    return fig, pd.DataFrame(all_imp)
