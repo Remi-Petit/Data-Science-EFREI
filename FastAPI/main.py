@@ -2,6 +2,7 @@ from fastapi import FastAPI
 import joblib
 import os
 import sys
+import numpy as np
 import pandas as pd
 from pydantic import BaseModel, field_validator
 from typing import List, Literal
@@ -156,15 +157,7 @@ def _preprocess_churn(data: ChurnData) -> pd.DataFrame:
     return pd.DataFrame([row])
 
 
-# ── ENDPOINTS ─────────────────────────────────────────────────────────────────
-
-@app.get("/health")
-def health():
-    return {
-        "status": "ok",
-        "sujet_1_models": list(S1_MODELS.keys()),
-        "sujet_2_models": list(S2_MODELS.keys()),
-    }
+# ── ENDPOINTS SUJET 1 & 2 ─────────────────────────────────────────────────────
 
 @app.post("/sujet-1/predict")
 def predict_s1(data: MachineData):
@@ -209,6 +202,105 @@ def predict_s2(data: ChurnData):
         }
 
     return {"results": results}
+
+# ── SUJET 3 – Marketing ROI ───────────────────────────────────────────────────
+
+S3RegModelName = Literal["linear_regression", "random_forest", "xgboost", "mlp"]
+S3ClsModelName = Literal["random_forest", "xgboost"]
+
+_s3_models_dir = os.getenv('S3_MODELS_DIR', os.path.join(os.path.dirname(__file__), '..', 'IA', 'Sujet_3', 'models'))
+S3_REG_MODELS = {
+    "linear_regression": joblib.load(os.path.join(_s3_models_dir, 'linear_regression_sales.joblib')),
+    "random_forest":     joblib.load(os.path.join(_s3_models_dir, 'random_forest_sales.joblib')),
+    "xgboost":           joblib.load(os.path.join(_s3_models_dir, 'xgboost_sales.joblib')),
+    "mlp":               joblib.load(os.path.join(_s3_models_dir, 'mlp_sales.joblib')),
+}
+S3_CLS_MODELS = {
+    "random_forest": joblib.load(os.path.join(_s3_models_dir, 'random_forest_performance.joblib')),
+    "xgboost":       joblib.load(os.path.join(_s3_models_dir, 'xgboost_performance.joblib')),
+}
+
+# Encodage Influencer (ordre alphabétique, miroir LabelEncoder sklearn)
+_S3_INFLUENCER_MAP = {'Macro': 0, 'Mega': 1, 'Micro': 2, 'Nano': 3}
+_S3_PERF_LABELS    = {0: 'Low', 1: 'Medium', 2: 'High'}
+
+# Seuils de classification (quantiles 33 % / 66 % du dataset)
+_S3_PERF_LOW  = 136.86
+_S3_PERF_HIGH = 241.53
+
+class MarketingData(BaseModel):
+    tv:           float
+    radio:        float
+    social_media: float
+    influencer:   Literal["Macro", "Mega", "Micro", "Nano"]
+    models: List[S3RegModelName] = ["linear_regression"]
+
+    @field_validator("models")
+    @classmethod
+    def models_not_empty(cls, v):
+        if not v:
+            raise ValueError("La liste 'models' ne peut pas être vide.")
+        return list(dict.fromkeys(v))
+
+
+def _preprocess_marketing(data: MarketingData) -> pd.DataFrame:
+    total_budget = data.tv + data.radio + data.social_media
+    row = {
+        "tv":                   data.tv,
+        "radio":                data.radio,
+        "social_media":         data.social_media,
+        "influencer_enc":       _S3_INFLUENCER_MAP[data.influencer],
+        "total_budget":         total_budget,
+        "tv_share":             data.tv           / total_budget if total_budget > 0 else 0,
+        "radio_share":          data.radio        / total_budget if total_budget > 0 else 0,
+        "social_share":         data.social_media / total_budget if total_budget > 0 else 0,
+        "tv_social_interaction": data.tv * data.social_media,
+    }
+    return pd.DataFrame([row])
+
+
+@app.post("/sujet-3/predict")
+def predict_s3(data: MarketingData):
+    df = _preprocess_marketing(data)
+
+    results = {}
+    for model_name in data.models:
+        model = S3_REG_MODELS[model_name]
+        sales_pred = float(model.predict(df)[0])
+
+        # Classification automatique de la performance
+        if sales_pred < _S3_PERF_LOW:
+            perf_label = "Low"
+        elif sales_pred < _S3_PERF_HIGH:
+            perf_label = "Medium"
+        else:
+            perf_label = "High"
+
+        # ROI estimé = ventes / budget total
+        total_budget = data.tv + data.radio + data.social_media
+        roi = round(sales_pred / total_budget, 4) if total_budget > 0 else None
+
+        results[model_name] = {
+            "sales_prediction": round(sales_pred, 4),
+            "performance":      perf_label,
+            "roi_estimate":     roi,
+        }
+
+    return {"results": results}
+
+
+# ── ENDPOINTS GLOBAUX ─────────────────────────────────────────────────────────
+
+@app.get("/health")
+def health():
+    return {
+        "status": "ok",
+        "sujet_1_models": list(S1_MODELS.keys()),
+        "sujet_2_models": list(S2_MODELS.keys()),
+        "sujet_3_reg_models": list(S3_REG_MODELS.keys()),
+        "sujet_3_cls_models": list(S3_CLS_MODELS.keys()),
+    }
+
 
 # Rétrocompatibilité
 @app.post("/predict")
