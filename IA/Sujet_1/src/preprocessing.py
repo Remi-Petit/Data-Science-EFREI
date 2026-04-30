@@ -14,6 +14,7 @@ FEATURES = [
     'machine_type_enc', 'operating_mode_enc', 'hour', 'dayofweek', 'month'
 ]
 TARGET = 'failure_within_24h'
+TARGET_TYPE = 'failure_type'
 
 
 def load_data(path: str = DATA_PATH) -> pd.DataFrame:
@@ -43,4 +44,11 @@ def get_train_test_split(df: pd.DataFrame, test_size: float = 0.2, random_state:
     """Retourne X_train, X_test, y_train, y_test (split stratifié)."""
     X = df[FEATURES]
     y = df[TARGET]
+    return train_test_split(X, y, test_size=test_size, random_state=random_state, stratify=y)
+
+
+def get_type_train_test_split(df: pd.DataFrame, test_size: float = 0.2, random_state: int = 42):
+    """Retourne le split pour la classification du type de panne (multiclasses)."""
+    X = df[FEATURES]
+    y = df[TARGET_TYPE]
     return train_test_split(X, y, test_size=test_size, random_state=random_state, stratify=y)

@@ -17,6 +17,8 @@ MODEL_FILENAMES = {
     'XGBoost':             'xgboost_failure_24h.joblib',
 }
 
+MODEL_FILENAME_TYPE = 'random_forest_failure_type.joblib'
+
 
 def build_pipelines() -> dict:
     """Retourne un dict {nom: Pipeline sklearn}."""
@@ -63,3 +65,18 @@ def train_and_save(models: dict, X_train, y_train, model_dir: str = 'models') ->
         joblib.dump(pipe, out_path)
         print(f"  {name:25s} → {out_path}")
     return trained
+
+
+def train_and_save_type(X_train, y_train, model_dir: str = 'models') -> Pipeline:
+    """Entraîne un Random Forest multiclasses sur failure_type et le sauvegarde."""
+    pipe = Pipeline([
+        ('imputer', SimpleImputer(strategy='median')),
+        ('clf', RandomForestClassifier(
+            n_estimators=200, class_weight='balanced', random_state=42, n_jobs=-1
+        ))
+    ])
+    pipe.fit(X_train, y_train)
+    out_path = f"{model_dir}/{MODEL_FILENAME_TYPE}"
+    joblib.dump(pipe, out_path)
+    print(f"  {'Random Forest (failure_type)':25s} → {out_path}")
+    return pipe
