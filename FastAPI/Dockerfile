@@ -7,6 +7,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY FastAPI/main.py ./main.py
 COPY IA/Sujet_1/models ./models
+COPY IA/Sujet_1/src ./IA/Sujet_1/src
 
 ENV MODELS_DIR=/app/models
 

@@ -1,9 +1,15 @@
 from fastapi import FastAPI, HTTPException
 import joblib
 import os
+import sys
 import pandas as pd
 from pydantic import BaseModel, field_validator
 from typing import List, Literal
+
+# Rendre le module src (IA/Sujet_1/src) importable par pickle lors du chargement des modèles
+_ia_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'IA', 'Sujet_1')
+if _ia_dir not in sys.path:
+    sys.path.insert(0, _ia_dir)
 
 app = FastAPI()
 
@@ -16,7 +22,11 @@ MODELS = {
     "random_forest":       joblib.load(os.path.join(_models_dir, 'random_forest_failure_24h.joblib')),
     "xgboost":             joblib.load(os.path.join(_models_dir, 'xgboost_failure_24h.joblib')),
 }
-MODEL_TYPE = joblib.load(os.path.join(_models_dir, 'random_forest_failure_type.joblib'))
+MODELS_TYPE = {
+    "logistic_regression": joblib.load(os.path.join(_models_dir, 'logistic_regression_failure_type.joblib')),
+    "random_forest":       joblib.load(os.path.join(_models_dir, 'random_forest_failure_type.joblib')),
+    "xgboost":             joblib.load(os.path.join(_models_dir, 'xgboost_failure_type.joblib')),
+}
 
 # Schéma des données d'entrée
 class MachineData(BaseModel):
@@ -50,12 +60,6 @@ def predict(data: MachineData):
     features = data.model_dump(exclude={"models"})
     df = pd.DataFrame([features])
 
-    # Prédiction de la cause potentielle (failure_type)
-    type_proba = MODEL_TYPE.predict_proba(df)[0]
-    type_classes = MODEL_TYPE.classes_
-    type_scores = {cls: round(float(p), 4) for cls, p in zip(type_classes, type_proba) if cls != 'none'}
-    cause_potentielle = max(type_scores, key=type_scores.get)
-
     results = {}
     for model_name in data.models:
         model = MODELS[model_name]
@@ -67,8 +71,13 @@ def predict(data: MachineData):
             "probabilite_panne": round(probabilite, 4),
         }
         if prediction == 1:
-            result["cause_potentielle"] = cause_potentielle
-            result["probabilites_causes"] = type_scores
+            model_type = MODELS_TYPE[model_name]
+            type_proba = model_type.predict_proba(df)[0]
+            type_classes = model_type.classes_
+            all_scores = {cls: round(float(p), 4) for cls, p in zip(type_classes, type_proba)}
+            failure_scores = {cls: p for cls, p in all_scores.items() if cls != 'none'}
+            result["cause_potentielle"] = max(failure_scores, key=failure_scores.get)
+            result["probabilites_causes"] = all_scores
         results[model_name] = result
 
     return {"results": results}
