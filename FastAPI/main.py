@@ -10,9 +10,9 @@ ModelName = Literal["logistic_regression", "random_forest", "xgboost"]
 
 # Chargement des modèles
 MODELS = {
-    "logistic_regression": joblib.load('../IA/Sujet_1/logistic_regression_failure_24h.joblib'),
-    "random_forest":       joblib.load('../IA/Sujet_1/random_forest_failure_24h.joblib'),
-    "xgboost":             joblib.load('../IA/Sujet_1/xgboost_failure_24h.joblib'),
+    "logistic_regression": joblib.load('../IA/Sujet_1/models/logistic_regression_failure_24h.joblib'),
+    "random_forest":       joblib.load('../IA/Sujet_1/models/random_forest_failure_24h.joblib'),
+    "xgboost":             joblib.load('../IA/Sujet_1/models/xgboost_failure_24h.joblib'),
 }
 
 # Schéma des données d'entrée
