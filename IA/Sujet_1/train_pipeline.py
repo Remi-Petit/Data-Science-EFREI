@@ -37,8 +37,8 @@ def main():
     os.makedirs(models_dir, exist_ok=True)
     trained = train_and_save(models, X_train, y_train, model_dir=models_dir)
 
-    # ── 3b. Modèle failure_type (cause de panne) ──────────────────────────────
-    print("\n=== Entraînement du modèle failure_type ===")
+    # ── 3b. Modèles failure_type (cause de panne, un par algo) ───────────────
+    print("\n=== Entraînement des modèles failure_type ===")
     X_train_t, X_test_t, y_train_t, y_test_t = get_type_train_test_split(df)
     train_and_save_type(X_train_t, y_train_t, model_dir=models_dir)
 

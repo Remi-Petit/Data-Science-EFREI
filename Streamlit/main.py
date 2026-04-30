@@ -12,10 +12,11 @@ MODEL_LABELS = {
 }
 
 CAUSE_LABELS = {
-    "bearing":       "Roulement (Bearing)",
+    "bearing":        "Roulement (Bearing)",
     "motor_overheat": "Surchauffe moteur",
-    "hydraulic":     "Défaut hydraulique",
-    "electrical":    "Défaut électrique",
+    "hydraulic":      "Défaut hydraulique",
+    "electrical":     "Défaut électrique",
+    "none":           "Aucune panne",
 }
 
 st.title("🔧 Prédiction de panne machine")
@@ -94,18 +95,18 @@ if st.button("🔍 Lancer la prédiction", use_container_width=True):
                 st.metric("Probabilité de panne", f"{res['probabilite_panne'] * 100:.2f}%")
 
                 if res["prediction"] == 1 and "cause_potentielle" in res:
-                    st.markdown("**Cause potentielle :**")
+                    st.markdown("**Cause potentielle la plus probable :**")
                     cause = res["cause_potentielle"]
                     st.info(f"🔎 {CAUSE_LABELS.get(cause, cause)}")
 
-                    st.markdown("**Probabilités par cause :**")
+                    st.markdown("**Détail des probabilités (toutes causes) :**")
                     scores = res["probabilites_causes"]
                     df_causes = pd.DataFrame(
                         {"Cause": [CAUSE_LABELS.get(k, k) for k in scores],
-                         "Probabilité": [v * 100 for v in scores.values()]}
-                    ).sort_values("Probabilité", ascending=False).reset_index(drop=True)
+                         "Probabilité (%)": [round(v * 100, 1) for v in scores.values()]}
+                    ).sort_values("Probabilité (%)", ascending=False).reset_index(drop=True)
                     st.dataframe(
-                        df_causes.style.format({"Probabilité": "{:.1f}%"}),
+                        df_causes.style.format({"Probabilité (%)": "{:.1f}%"}),
                         hide_index=True,
                         use_container_width=True,
                     )
