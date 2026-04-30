@@ -1,5 +1,6 @@
 from fastapi import FastAPI, HTTPException
 import joblib
+import os
 import pandas as pd
 from pydantic import BaseModel, field_validator
 from typing import List, Literal
@@ -8,11 +9,12 @@ app = FastAPI()
 
 ModelName = Literal["logistic_regression", "random_forest", "xgboost"]
 
-# Chargement des modèles
+# Chargement des modèles (MODELS_DIR configurable via variable d'environnement)
+_models_dir = os.getenv('MODELS_DIR', os.path.join(os.path.dirname(__file__), '..', 'IA', 'Sujet_1', 'models'))
 MODELS = {
-    "logistic_regression": joblib.load('../IA/Sujet_1/models/logistic_regression_failure_24h.joblib'),
-    "random_forest":       joblib.load('../IA/Sujet_1/models/random_forest_failure_24h.joblib'),
-    "xgboost":             joblib.load('../IA/Sujet_1/models/xgboost_failure_24h.joblib'),
+    "logistic_regression": joblib.load(os.path.join(_models_dir, 'logistic_regression_failure_24h.joblib')),
+    "random_forest":       joblib.load(os.path.join(_models_dir, 'random_forest_failure_24h.joblib')),
+    "xgboost":             joblib.load(os.path.join(_models_dir, 'xgboost_failure_24h.joblib')),
 }
 
 # Schéma des données d'entrée
