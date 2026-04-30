@@ -16,6 +16,7 @@ MODELS = {
     "random_forest":       joblib.load(os.path.join(_models_dir, 'random_forest_failure_24h.joblib')),
     "xgboost":             joblib.load(os.path.join(_models_dir, 'xgboost_failure_24h.joblib')),
 }
+MODEL_TYPE = joblib.load(os.path.join(_models_dir, 'random_forest_failure_type.joblib'))
 
 # Schéma des données d'entrée
 class MachineData(BaseModel):
@@ -49,15 +50,25 @@ def predict(data: MachineData):
     features = data.model_dump(exclude={"models"})
     df = pd.DataFrame([features])
 
+    # Prédiction de la cause potentielle (failure_type)
+    type_proba = MODEL_TYPE.predict_proba(df)[0]
+    type_classes = MODEL_TYPE.classes_
+    type_scores = {cls: round(float(p), 4) for cls, p in zip(type_classes, type_proba) if cls != 'none'}
+    cause_potentielle = max(type_scores, key=type_scores.get)
+
     results = {}
     for model_name in data.models:
         model = MODELS[model_name]
         prediction = int(model.predict(df)[0])
         probabilite = float(model.predict_proba(df)[0][1])
-        results[model_name] = {
+        result = {
             "prediction": prediction,
             "label": "Panne probable" if prediction == 1 else "Pas de panne",
-            "probabilite_panne": round(probabilite, 4)
+            "probabilite_panne": round(probabilite, 4),
         }
+        if prediction == 1:
+            result["cause_potentielle"] = cause_potentielle
+            result["probabilites_causes"] = type_scores
+        results[model_name] = result
 
     return {"results": results}
