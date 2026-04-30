@@ -2,7 +2,7 @@
 docker compose up -d --build
 
 ## Éviter le problème de cache
-docker compose build -no-cache
+docker compose build --no-cache
 
 # Les URLS
 
