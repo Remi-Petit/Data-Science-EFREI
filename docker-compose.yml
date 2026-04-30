@@ -4,6 +4,7 @@ services:
     build:
       context: .
       dockerfile: FastAPI/Dockerfile
+      pull: true
     ports:
       - "8000:8000"
     environment:
@@ -20,8 +21,9 @@ services:
     build:
       context: .
       dockerfile: Streamlit/Dockerfile
+      pull: true
     ports:
-      - "8501:8501"
+      - "40000:8501"
     environment:
       - API_URL=http://fastapi:8000
     depends_on:
