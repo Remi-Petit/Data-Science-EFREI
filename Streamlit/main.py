@@ -1,6 +1,7 @@
 import os
 import streamlit as st
 import requests
+import pandas as pd
 
 API_URL = os.getenv('API_URL', 'http://localhost:8000')
 
@@ -8,6 +9,13 @@ MODEL_LABELS = {
     "logistic_regression": "Logistic Regression",
     "random_forest":       "Random Forest",
     "xgboost":             "XGBoost",
+}
+
+CAUSE_LABELS = {
+    "bearing":       "Roulement (Bearing)",
+    "motor_overheat": "Surchauffe moteur",
+    "hydraulic":     "Défaut hydraulique",
+    "electrical":    "Défaut électrique",
 }
 
 st.title("🔧 Prédiction de panne machine")
@@ -84,6 +92,23 @@ if st.button("🔍 Lancer la prédiction", use_container_width=True):
                 else:
                     st.success(f"✅ {res['label']}")
                 st.metric("Probabilité de panne", f"{res['probabilite_panne'] * 100:.2f}%")
+
+                if res["prediction"] == 1 and "cause_potentielle" in res:
+                    st.markdown("**Cause potentielle :**")
+                    cause = res["cause_potentielle"]
+                    st.info(f"🔎 {CAUSE_LABELS.get(cause, cause)}")
+
+                    st.markdown("**Probabilités par cause :**")
+                    scores = res["probabilites_causes"]
+                    df_causes = pd.DataFrame(
+                        {"Cause": [CAUSE_LABELS.get(k, k) for k in scores],
+                         "Probabilité": [v * 100 for v in scores.values()]}
+                    ).sort_values("Probabilité", ascending=False).reset_index(drop=True)
+                    st.dataframe(
+                        df_causes.style.format({"Probabilité": "{:.1f}%"}),
+                        hide_index=True,
+                        use_container_width=True,
+                    )
 
     except Exception as e:
         st.error(f"Erreur de connexion à l'API : {e}")
