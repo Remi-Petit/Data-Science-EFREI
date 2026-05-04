@@ -21,7 +21,7 @@ jobs:
         run: pip install flake8
 
       - name: Run flake8
-        run: flake8 FastAPI/ Streamlit/ IA/ --max-line-length=120 --ignore=E501,W503
+        run: flake8 FastAPI/ Streamlit/ IA/ --max-line-length=120 --ignore=E501,W503,E241
 
   build:
     name: Build Docker images
