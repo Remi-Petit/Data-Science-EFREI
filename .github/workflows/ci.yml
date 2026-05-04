@@ -87,10 +87,10 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Stop existing containers
-        run: docker compose -f docker-compose.yml -f docker-compose.prod.yml down || true
+        run: docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose.prod.yml down || true
 
       - name: Build and start services
-        run: docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+        run: docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose.prod.yml up -d --build
 
       - name: Wait for FastAPI health
         run: |
@@ -103,5 +103,5 @@ jobs:
             sleep 2
           done
           echo "Deployment failed"
-          docker compose -f docker-compose.yml -f docker-compose.prod.yml logs
+          docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose.prod.yml logs
           exit 1
