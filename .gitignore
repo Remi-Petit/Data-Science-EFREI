@@ -32,6 +32,3 @@ Thumbs.db
 # IDE
 .vscode/
 .idea/
-
-# Variable d'environnement
-.env.*
