@@ -6,7 +6,7 @@ services:
       dockerfile: FastAPI/Dockerfile
       pull: true
     ports:
-      - "40001:8000"
+      - "${FASTAPI_PORT:-40001}:8000"
     environment:
       - MODELS_DIR=/app/models
     healthcheck:
@@ -15,6 +15,8 @@ services:
       timeout: 10s
       retries: 3
       start_period: 10s
+    networks:
+      - swag_default
 
   streamlit:
     container_name: streamlit_efrei_data_science
@@ -23,9 +25,15 @@ services:
       dockerfile: Streamlit/Dockerfile
       pull: true
     ports:
-      - "40000:8501"
+      - "${STREAMLIT_PORT:-40000}:8501"
     environment:
       - API_URL=http://fastapi:8000
     depends_on:
       fastapi:
         condition: service_healthy
+    networks:
+      - swag_default
+
+networks:
+  swag_default:
+    external: true
