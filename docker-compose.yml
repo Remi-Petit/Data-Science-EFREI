@@ -15,8 +15,6 @@ services:
       timeout: 10s
       retries: 3
       start_period: 10s
-    networks:
-      - swag_default
 
   streamlit:
     container_name: streamlit_efrei_data_science
@@ -31,9 +29,3 @@ services:
     depends_on:
       fastapi:
         condition: service_healthy
-    networks:
-      - swag_default
-
-networks:
-  swag_default:
-    external: true

@@ -1,0 +1,12 @@
+services:
+  fastapi:
+    networks:
+      - swag_default
+
+  streamlit:
+    networks:
+      - swag_default
+
+networks:
+  swag_default:
+    external: true
