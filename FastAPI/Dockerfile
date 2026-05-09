@@ -6,6 +6,10 @@ COPY FastAPI/requirements.txt ./requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY FastAPI/main.py ./main.py
+COPY FastAPI/ml_models.py ./ml_models.py
+COPY FastAPI/schemas ./schemas
+COPY FastAPI/controllers ./controllers
+COPY FastAPI/routers ./routers
 COPY IA/Sujet_1/models ./IA/Sujet_1/models
 COPY IA/Sujet_1/src ./IA/Sujet_1/src
 COPY IA/Sujet_2/models ./IA/Sujet_2/models
