@@ -2,5 +2,5 @@
   "logistic_regression": "Logistic Regression",
   "random_forest": "Random Forest",
   "xgboost": "XGBoost",
-  "mlp": "MLP (Deep Learning)"
+  "mlp": "MLP"
 }

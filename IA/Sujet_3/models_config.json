@@ -1,12 +1,30 @@
 {
   "regression": {
-    "linear_regression": "linear_regression_sales.joblib",
-    "random_forest": "random_forest_sales.joblib",
-    "xgboost": "xgboost_sales.joblib",
-    "mlp": "mlp_sales.joblib"
+    "linear_regression": {
+      "file": "linear_regression_sales.joblib",
+      "label": "Linear Regression"
+    },
+    "random_forest": {
+      "file": "random_forest_sales.joblib",
+      "label": "Random Forest"
+    },
+    "xgboost": {
+      "file": "xgboost_sales.joblib",
+      "label": "XGBoost"
+    },
+    "mlp": {
+      "file": "mlp_sales.joblib",
+      "label": "MLP"
+    }
   },
   "classification": {
-    "random_forest": "random_forest_performance.joblib",
-    "xgboost": "xgboost_performance.joblib"
+    "random_forest": {
+      "file": "random_forest_performance.joblib",
+      "label": "Random Forest"
+    },
+    "xgboost": {
+      "file": "xgboost_performance.joblib",
+      "label": "XGBoost"
+    }
   }
 }

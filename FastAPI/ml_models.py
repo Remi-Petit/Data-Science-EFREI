@@ -13,9 +13,10 @@ def _load_config(config_path: str) -> dict:
 
 
 def _load_group(models_dir: str, group: dict) -> dict:
-    """Charge un groupe {clé: fichier}, ignore les fichiers absents."""
+    """Charge un groupe {clé: {file, label} | filename}, ignore les fichiers absents."""
     result = {}
-    for key, filename in group.items():
+    for key, entry in group.items():
+        filename = entry["file"] if isinstance(entry, dict) else entry
         path = os.path.join(models_dir, filename)
         if not os.path.isfile(path):
             print(f"[ml_models] Modèle absent, ignoré : {path}")

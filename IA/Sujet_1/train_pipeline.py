@@ -90,18 +90,15 @@ def main():
 
     print(f"\nFigures sauvegardées dans : {results_dir}")
 
-    # ── 6. Génération automatique de models_config.json et labels.json ──────────────────
+    # ── 6. Génération automatique de models_config.json ──────────────────────
     _base = os.path.dirname(os.path.abspath(__file__))
     models_config = {
-        'failure_24h':  {_name_map[k]: v for k, v in MODEL_FILENAMES.items()},
-        'failure_type': {_name_map[k]: v for k, v in MODEL_FILENAMES_TYPE.items()},
+        'failure_24h':  {_name_map[k]: {"file": v, "label": k} for k, v in MODEL_FILENAMES.items()},
+        'failure_type': {_name_map[k]: {"file": v, "label": k} for k, v in MODEL_FILENAMES_TYPE.items()},
     }
     with open(os.path.join(_base, 'models_config.json'), 'w', encoding='utf-8') as f:
-        json.dump(models_config, f, indent=2)
-    labels = {v: k for k, v in _name_map.items()}
-    with open(os.path.join(_base, 'labels.json'), 'w', encoding='utf-8') as f:
-        json.dump(labels, f, indent=2, ensure_ascii=False)
-    print(f"models_config.json et labels.json mis à jour.")
+        json.dump(models_config, f, indent=2, ensure_ascii=False)
+    print(f"models_config.json mis à jour.")
 
     print("\nPipeline terminé ✓")
 

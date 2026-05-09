@@ -1,12 +1,30 @@
 {
   "failure_24h": {
-    "logistic_regression": "logistic_regression_failure_24h.joblib",
-    "random_forest": "random_forest_failure_24h.joblib",
-    "xgboost": "xgboost_failure_24h.joblib"
+    "logistic_regression": {
+      "file": "logistic_regression_failure_24h.joblib",
+      "label": "Logistic Regression"
+    },
+    "random_forest": {
+      "file": "random_forest_failure_24h.joblib",
+      "label": "Random Forest"
+    },
+    "xgboost": {
+      "file": "xgboost_failure_24h.joblib",
+      "label": "XGBoost"
+    }
   },
   "failure_type": {
-    "logistic_regression": "logistic_regression_failure_type.joblib",
-    "random_forest": "random_forest_failure_type.joblib",
-    "xgboost": "xgboost_failure_type.joblib"
+    "logistic_regression": {
+      "file": "logistic_regression_failure_type.joblib",
+      "label": "Logistic Regression"
+    },
+    "random_forest": {
+      "file": "random_forest_failure_type.joblib",
+      "label": "Random Forest"
+    },
+    "xgboost": {
+      "file": "xgboost_failure_type.joblib",
+      "label": "XGBoost"
+    }
   }
 }
