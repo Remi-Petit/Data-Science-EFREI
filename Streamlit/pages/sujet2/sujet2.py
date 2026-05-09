@@ -5,6 +5,8 @@ import requests
 API_URL = os.getenv('API_URL', 'http://localhost:8000')
 
 
+_MEDALS = ["🥇", "🥈", "🥉"]
+
 @st.cache_data(ttl=60)
 def _fetch_models() -> tuple[list[str], dict[str, str]]:
     try:
@@ -13,6 +15,13 @@ def _fetch_models() -> tuple[list[str], dict[str, str]]:
         entries = r.json()["models"]
         models = [e["name"] for e in entries]
         labels = {e["name"]: e["label"] for e in entries}
+        try:
+            sr = requests.get(f"{API_URL}/sujet-2/stats", timeout=5)
+            sr.raise_for_status()
+            stats = sr.json()["stats"]
+            models.sort(key=lambda k: stats.get(k, {}).get("F1-score", 0), reverse=True)
+        except Exception:
+            pass
         return models, labels
     except Exception:
         fallback = ["logistic_regression", "random_forest", "xgboost", "mlp"]
@@ -21,7 +30,10 @@ def _fetch_models() -> tuple[list[str], dict[str, str]]:
 available_models, model_labels = _fetch_models()
 
 def _label(key: str) -> str:
-    return model_labels.get(key, key.replace('_', ' ').title())
+    idx = available_models.index(key) if key in available_models else -1
+    medal = _MEDALS[idx] if 0 <= idx < len(_MEDALS) else ""
+    base = model_labels.get(key, key.replace('_', ' ').title())
+    return f"{medal} {base}".strip() if medal else base
 
 st.title("📉 Prédiction de churn client")
 st.markdown("Renseignez les informations du client pour prédire s'il risque de résilier son abonnement.")
