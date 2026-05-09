@@ -48,7 +48,11 @@ def get_train_test_split(df: pd.DataFrame, test_size: float = 0.2, random_state:
 
 
 def get_type_train_test_split(df: pd.DataFrame, test_size: float = 0.2, random_state: int = 42):
-    """Retourne le split pour la classification du type de panne (multiclasses)."""
-    X = df[FEATURES]
-    y = df[TARGET_TYPE]
+    """Retourne le split pour la classification du type de panne.
+    N'utilise que les lignes où il y a effectivement une panne (failure_within_24h == 1),
+    afin que le modèle apprenne uniquement à distinguer les causes réelles.
+    """
+    df_failures = df[df[TARGET] == 1].copy()
+    X = df_failures[FEATURES]
+    y = df_failures[TARGET_TYPE]
     return train_test_split(X, y, test_size=test_size, random_state=random_state, stratify=y)

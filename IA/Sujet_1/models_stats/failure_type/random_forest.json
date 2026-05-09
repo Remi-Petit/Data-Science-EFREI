@@ -1,7 +1,7 @@
 {
-  "Accuracy": 0.9753,
-  "Precision": 0.9586,
-  "Recall": 0.8927,
-  "F1-score": 0.9234,
-  "ROC-AUC": 0.9983
+  "Accuracy": 0.9874,
+  "Precision": 0.9878,
+  "Recall": 0.9861,
+  "F1-score": 0.9868,
+  "ROC-AUC": 0.9997
 }
