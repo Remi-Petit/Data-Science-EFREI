@@ -1,9 +1,5 @@
 services:
   fastapi:
-    volumes:
-      - /opt/efrei-ds-models/Sujet_1:/app/IA/Sujet_1/models:ro
-      - /opt/efrei-ds-models/Sujet_2:/app/IA/Sujet_2/models:ro
-      - /opt/efrei-ds-models/Sujet_3:/app/IA/Sujet_3/models:ro
     networks:
       - swag_default
 
