@@ -131,11 +131,20 @@ jobs:
           name: trained-models
           path: .
 
+      - name: Copy models to persistent host directory
+        run: |
+          mkdir -p /opt/efrei-ds-models/Sujet_1
+          mkdir -p /opt/efrei-ds-models/Sujet_2
+          mkdir -p /opt/efrei-ds-models/Sujet_3
+          cp -r IA/Sujet_1/models/. /opt/efrei-ds-models/Sujet_1/
+          cp -r IA/Sujet_2/models/. /opt/efrei-ds-models/Sujet_2/
+          cp -r IA/Sujet_3/models/. /opt/efrei-ds-models/Sujet_3/
+
       - name: Stop existing containers
         run: docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose.prod.yml down || true
 
       - name: Build and start services
-        run: docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose.prod.yml build --no-cache && docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose.prod.yml up -d
+        run: docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose.prod.yml build && docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose.prod.yml up -d
 
       - name: Wait for FastAPI health
         run: |
