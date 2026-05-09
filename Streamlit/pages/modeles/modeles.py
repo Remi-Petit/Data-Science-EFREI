@@ -10,7 +10,7 @@ _MEDALS = ["🥇", "🥈", "🥉"]
 
 # ── Fetch ─────────────────────────────────────────────────────────────────────
 
-@st.cache_data(ttl=60)
+@st.cache_data(ttl=300)
 def _fetch(subject: str) -> tuple[dict, dict]:
     labels_r = requests.get(f"{API_URL}/sujet-{subject}/models", timeout=5)
     stats_r  = requests.get(f"{API_URL}/sujet-{subject}/stats",  timeout=5)

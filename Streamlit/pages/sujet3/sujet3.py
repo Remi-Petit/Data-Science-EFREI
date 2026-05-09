@@ -8,7 +8,7 @@ API_URL = os.getenv('API_URL', 'http://localhost:8000')
 
 _MEDALS = ["🥇", "🥈", "🥉"]
 
-@st.cache_data(ttl=60)
+@st.cache_data(ttl=300)
 def _fetch_models() -> tuple[list[str], dict[str, str]]:
     try:
         r = requests.get(f"{API_URL}/sujet-3/models", timeout=5)
