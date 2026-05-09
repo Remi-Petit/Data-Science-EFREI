@@ -94,11 +94,13 @@ tab1, tab2, tab3 = st.tabs([
 with tab1:
     try:
         labels1, stats1 = _fetch("1")
-        sub_a, sub_b = st.tabs(["Détection panne 24h", "Type de panne"])
+        sub_a, sub_b, sub_c = st.tabs(["Détection panne 24h", "Type de panne", "Durée de vie (RUL)"])
         with sub_a:
             _show_group(stats1.get("failure_24h", {}), labels1, "F1-score")
         with sub_b:
             _show_group(stats1.get("failure_type", {}), labels1, "F1-score")
+        with sub_c:
+            _show_group(stats1.get("rul", {}), labels1, rank_col="R²", ascending=False, as_pct=False)
     except Exception as e:
         st.error(f"Impossible de charger les statistiques Sujet 1 : {e}")
 
