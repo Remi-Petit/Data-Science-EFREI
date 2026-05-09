@@ -2,6 +2,8 @@
 import requests
 import streamlit as st
 
+st.set_page_config(layout="wide")
+
 API_URL = os.getenv('API_URL', 'http://localhost:8000')
 
 pg = st.navigation([
