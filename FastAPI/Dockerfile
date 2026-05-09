@@ -15,7 +15,6 @@ ENV S3_BASE_DIR=/app/IA/Sujet_3
 ENV S1_MODELS_DIR=/app/IA/Sujet_1/models
 ENV S2_MODELS_DIR=/app/IA/Sujet_2/models
 ENV S3_MODELS_DIR=/app/IA/Sujet_3/models
-ENV PYTHONPATH=/app/IA/Sujet_1:$PYTHONPATH
 
 EXPOSE 8000
 

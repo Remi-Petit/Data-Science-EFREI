@@ -5,10 +5,9 @@ docker compose up -d --build
 docker compose build --no-cache
 
 ## Les URLS
-
-Streamlit : http://localhost:8501
-API : http://localhost:8000
-Doc : http://localhost:8000/docs
+Streamlit : http://localhost:40000
+API : http://localhost:40001
+Doc : http://localhost:40001/docs
 
 # Mise en place en local
 Il faut un env virtuel python de préférence
@@ -24,6 +23,11 @@ streamlit run main.py
 ## Prepération des modèles d'IA
 pip install -r IA/requirements.txt
 python IA/train_all.py
+
+## Les URLS
+Streamlit : http://localhost:8501
+API : http://localhost:8000
+Doc : http://localhost:8000/docs
 
 # Code2Prompt
 Un outil qui permet de combiner le code des différents fichiers du projet en un fichier markdown, facilement compréhensible par les LLM.
