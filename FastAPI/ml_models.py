@@ -27,7 +27,10 @@ def _load_group(models_dir: str, group: dict) -> dict:
 
 # ── SUJET 1 – Maintenance prédictive ─────────────────────────────────────────
 
-_s1_base = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'IA', 'Sujet_1')
+_s1_base = os.getenv(
+    'S1_BASE_DIR',
+    os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'IA', 'Sujet_1'))
+)
 if _s1_base not in sys.path:
     sys.path.insert(0, _s1_base)
 
@@ -38,14 +41,20 @@ S1_MODELS_TYPE = _load_group(_s1_models_dir, _s1_config.get('failure_type', {}))
 
 # ── SUJET 2 – Churn client ────────────────────────────────────────────────────
 
-_s2_base       = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'IA', 'Sujet_2')
+_s2_base = os.getenv(
+    'S2_BASE_DIR',
+    os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'IA', 'Sujet_2'))
+)
 _s2_models_dir = os.getenv('S2_MODELS_DIR', os.path.join(_s2_base, 'models'))
 _s2_config     = _load_config(os.path.join(_s2_base, 'models_config.json'))
 S2_MODELS      = _load_group(_s2_models_dir, _s2_config.get('churn', {}))
 
 # ── SUJET 3 – Marketing ROI ───────────────────────────────────────────────────
 
-_s3_base       = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'IA', 'Sujet_3')
+_s3_base = os.getenv(
+    'S3_BASE_DIR',
+    os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'IA', 'Sujet_3'))
+)
 _s3_models_dir = os.getenv('S3_MODELS_DIR', os.path.join(_s3_base, 'models'))
 _s3_config     = _load_config(os.path.join(_s3_base, 'models_config.json'))
 S3_REG_MODELS  = _load_group(_s3_models_dir, _s3_config.get('regression', {}))

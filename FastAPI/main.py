@@ -16,15 +16,12 @@ def root():
 
 
 def check_models():
-    models_info = {
+    return {
         "sujet_1_models": list(S1_MODELS.keys()),
         "sujet_2_models": list(S2_MODELS.keys()),
         "sujet_3_reg_models": list(S3_REG_MODELS.keys()),
         "sujet_3_cls_models": list(S3_CLS_MODELS.keys()),
     }
-    if any(len(v) == 0 for v in models_info.values()):
-        return None  # déclenche le 503
-    return models_info
 
 
 app.add_api_route("/health", health([check_models]))

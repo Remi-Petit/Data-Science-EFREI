@@ -9,6 +9,9 @@ COPY FastAPI/ ./
 COPY IA/ ./IA/
 
 ENV MODELS_DIR=/app/IA/Sujet_1/models
+ENV S1_BASE_DIR=/app/IA/Sujet_1
+ENV S2_BASE_DIR=/app/IA/Sujet_2
+ENV S3_BASE_DIR=/app/IA/Sujet_3
 ENV S1_MODELS_DIR=/app/IA/Sujet_1/models
 ENV S2_MODELS_DIR=/app/IA/Sujet_2/models
 ENV S3_MODELS_DIR=/app/IA/Sujet_3/models
