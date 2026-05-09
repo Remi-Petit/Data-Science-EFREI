@@ -10,6 +10,7 @@ pg = st.navigation([
     st.Page("pages/sujet1/sujet1.py", title="Sujet 1 – Maintenance prédictive", icon="🔧"),
     st.Page("pages/sujet2/sujet2.py", title="Sujet 2 – Churn client", icon="📉"),
     st.Page("pages/sujet3/sujet3.py", title="Sujet 3 – ROI Marketing", icon="📈"),
+    st.Page("pages/modeles/modeles.py", title="Comparaison des modèles", icon="📊"),
 ])
 pg.run()
 
