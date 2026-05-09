@@ -101,16 +101,16 @@ with tab1:
             _show_group(stats1.get("failure_type", {}), labels1, "F1-score")
         with sub_c:
             _show_group(stats1.get("rul", {}), labels1, rank_col="R²", ascending=False, as_pct=False)
-    except Exception as e:
-        st.error(f"Impossible de charger les statistiques Sujet 1 : {e}")
+    except Exception:
+        st.warning("⚠️ Les statistiques du Sujet 1 ne sont pas disponibles pour le moment.")
 
 # ── Sujet 2 ──────────────────────────────────────────────────────────────────
 with tab2:
     try:
         labels2, stats2 = _fetch("2")
         _show_group(stats2, labels2, "F1-score")
-    except Exception as e:
-        st.error(f"Impossible de charger les statistiques Sujet 2 : {e}")
+    except Exception:
+        st.warning("⚠️ Les statistiques du Sujet 2 ne sont pas disponibles pour le moment.")
 
 # ── Sujet 3 ──────────────────────────────────────────────────────────────────
 with tab3:
@@ -127,5 +127,5 @@ with tab3:
                 stats3.get("classification", {}), labels3,
                 rank_col="F1 (macro)", ascending=False, as_pct=True,
             )
-    except Exception as e:
-        st.error(f"Impossible de charger les statistiques Sujet 3 : {e}")
+    except Exception:
+        st.warning("⚠️ Les statistiques du Sujet 3 ne sont pas disponibles pour le moment.")

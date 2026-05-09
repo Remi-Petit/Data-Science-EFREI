@@ -31,6 +31,8 @@ def _fetch_models() -> tuple[list[str], dict[str, str]]:
 available_models, model_labels = _fetch_models()
 
 def _label(key: str) -> str:
+    if key is None:
+        return ""
     idx = available_models.index(key) if key in available_models else -1
     medal = _MEDALS[idx] if 0 <= idx < len(_MEDALS) else ""
     base = model_labels.get(key, key.replace('_', ' ').title())
@@ -84,6 +86,8 @@ selected_models = st.multiselect(
     default=available_models[:1],
     format_func=_label,
 )
+if not available_models:
+    st.warning("⚠️ Aucun modèle n'est disponible pour le moment. Veuillez réessayer plus tard.")
 
 st.divider()
 
