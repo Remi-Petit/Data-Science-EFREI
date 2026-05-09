@@ -125,11 +125,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install training dependencies
-        run: pip install -r IA/requirements.txt
-
-      - name: Train ML models
-        run: python IA/train_all.py
+      - name: Download trained models
+        uses: actions/download-artifact@v4
+        with:
+          name: trained-models
+          path: IA
 
       - name: Stop existing containers
         run: docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose.prod.yml down || true
