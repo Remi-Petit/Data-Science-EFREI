@@ -11,6 +11,7 @@ import os
 import sys
 
 _src_dir = os.path.dirname(os.path.abspath(__file__))
+import json
 if _src_dir not in sys.path:
     sys.path.insert(0, _src_dir)
 
@@ -68,6 +69,15 @@ def main():
     print(df_reg.to_string())
     df_reg.to_csv(os.path.join(RESULTS_DIR, 'model_comparison_regression.csv'))
 
+    # Sauvegarde des stats régression par modèle
+    _stats_reg_dir = os.path.join(_src_dir, 'models_stats', 'regression')
+    os.makedirs(_stats_reg_dir, exist_ok=True)
+    _name_map_reg = {'Linear Regression': 'linear_regression', 'Random Forest': 'random_forest', 'XGBoost': 'xgboost', 'MLP': 'mlp'}
+    for model_name, row in df_reg.iterrows():
+        key = _name_map_reg.get(model_name, model_name.lower().replace(' ', '_'))
+        with open(os.path.join(_stats_reg_dir, f'{key}.json'), 'w') as f:
+            json.dump(row.to_dict(), f, indent=2)
+
     # Feature importance (Random Forest)
     fi = get_feature_importance(trained_reg['Random Forest'], FEATURES)
     if not fi.empty:
@@ -86,6 +96,15 @@ def main():
     print("\n  Résultats classification :")
     print(df_cls.to_string())
     df_cls.to_csv(os.path.join(RESULTS_DIR, 'model_comparison_classification.csv'))
+
+    # Sauvegarde des stats classification par modèle
+    _stats_cls_dir = os.path.join(_src_dir, 'models_stats', 'classification')
+    os.makedirs(_stats_cls_dir, exist_ok=True)
+    _name_map_cls = {'Random Forest': 'random_forest', 'XGBoost': 'xgboost'}
+    for model_name, row in df_cls.iterrows():
+        key = _name_map_cls.get(model_name, model_name.lower().replace(' ', '_'))
+        with open(os.path.join(_stats_cls_dir, f'{key}.json'), 'w') as f:
+            json.dump(row.to_dict(), f, indent=2)
 
     # ── 4. Fin ─────────────────────────────────────────────────────────────────
     print(f"\n[4/4] Modèles sauvegardés → {MODELS_DIR}")

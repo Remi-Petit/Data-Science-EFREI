@@ -1,7 +1,7 @@
 """
 Évaluation des modèles de régression et classification marketing.
 Métriques régression    : MAE, RMSE, R²
-Métriques classification : Accuracy, F1-macro
+Métriques classification : Accuracy, Precision, Recall, F1-macro, ROC-AUC
 """
 import numpy as np
 import pandas as pd
@@ -11,6 +11,7 @@ from sklearn.metrics import (
     mean_squared_error,
     r2_score,
     classification_report,
+    roc_auc_score,
     ConfusionMatrixDisplay,
     confusion_matrix,
 )
@@ -31,10 +32,11 @@ def evaluate_regression(trained_models: dict, X_test, y_test) -> pd.DataFrame:
 
 
 def evaluate_classification(trained_models: dict, X_test, y_test) -> pd.DataFrame:
-    """Calcule Accuracy et F1-macro pour chaque modèle de classification."""
+    """Calcule Accuracy, Precision, Recall, F1-macro et ROC-AUC (macro OvR) pour chaque modèle de classification."""
     rows = []
     for name, pipe in trained_models.items():
         y_pred = pipe.predict(X_test)
+        y_prob = pipe.predict_proba(X_test)
         report = classification_report(
             y_test, y_pred,
             target_names=['Low', 'Medium', 'High'],
@@ -42,9 +44,12 @@ def evaluate_classification(trained_models: dict, X_test, y_test) -> pd.DataFram
             zero_division=0,
         )
         rows.append({
-            'Modèle':     name,
-            'Accuracy':   round(report['accuracy'], 4),
-            'F1 (macro)': round(report['macro avg']['f1-score'], 4),
+            'Modèle':         name,
+            'Accuracy':       round(report['accuracy'], 4),
+            'Precision':      round(report['macro avg']['precision'], 4),
+            'Recall':         round(report['macro avg']['recall'], 4),
+            'F1 (macro)':     round(report['macro avg']['f1-score'], 4),
+            'ROC-AUC':        round(roc_auc_score(y_test, y_prob, multi_class='ovr', average='macro'), 4),
         })
     return pd.DataFrame(rows).set_index('Modèle')
 

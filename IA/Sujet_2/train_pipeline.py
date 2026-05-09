@@ -6,6 +6,7 @@ Usage (depuis IA/Sujet_2/) :
 """
 import os
 import sys
+import json
 
 # Résolution des imports locaux quand on exécute le script directement
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -48,7 +49,15 @@ def main():
     print("\n=== Évaluation sur le jeu de test ===")
     results_df = evaluate_models(trained, X_test, y_test)
     print(results_df.to_string())
-
+    # ── 4b. Sauvegarde des stats par modèle ──────────────────────────────────
+    stats_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'models_stats')
+    os.makedirs(stats_dir, exist_ok=True)
+    _name_map = {'Logistic Regression': 'logistic_regression', 'Random Forest': 'random_forest', 'XGBoost': 'xgboost', 'MLP': 'mlp'}
+    for model_name, row in results_df.iterrows():
+        key = _name_map.get(model_name, model_name.lower().replace(' ', '_'))
+        with open(os.path.join(stats_dir, f'{key}.json'), 'w') as f:
+            json.dump(row.to_dict(), f, indent=2)
+    print(f"Stats sauvegardées dans : {stats_dir}")
     # ── 5. Visualisations (sauvegardées en PNG) ───────────────────────────────
     results_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'results')
     os.makedirs(results_dir, exist_ok=True)
