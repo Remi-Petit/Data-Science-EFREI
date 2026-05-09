@@ -4,12 +4,24 @@ import requests
 
 API_URL = os.getenv('API_URL', 'http://localhost:8000')
 
-S2_MODEL_LABELS = {
-    "logistic_regression": "Logistic Regression",
-    "random_forest":       "Random Forest",
-    "xgboost":             "XGBoost",
-    "mlp":                 "MLP (Deep Learning)",
-}
+
+@st.cache_data(ttl=60)
+def _fetch_models() -> tuple[list[str], dict[str, str]]:
+    try:
+        r = requests.get(f"{API_URL}/sujet-2/models", timeout=5)
+        r.raise_for_status()
+        entries = r.json()["models"]
+        models = [e["name"] for e in entries]
+        labels = {e["name"]: e["label"] for e in entries}
+        return models, labels
+    except Exception:
+        fallback = ["logistic_regression", "random_forest", "xgboost", "mlp"]
+        return fallback, {k: k for k in fallback}
+
+available_models, model_labels = _fetch_models()
+
+def _label(key: str) -> str:
+    return model_labels.get(key, key.replace('_', ' ').title())
 
 st.title("📉 Prédiction de churn client")
 st.markdown("Renseignez les informations du client pour prédire s'il risque de résilier son abonnement.")
@@ -65,9 +77,9 @@ st.divider()
 
 selected_models = st.multiselect(
     "🤖 Modèles à comparer",
-    options=list(S2_MODEL_LABELS.keys()),
-    default=["random_forest"],
-    format_func=lambda x: S2_MODEL_LABELS[x],
+    options=available_models,
+    default=available_models[:1],
+    format_func=_label,
 )
 
 st.divider()
@@ -120,7 +132,7 @@ if st.button("🔍 Lancer la prédiction", use_container_width=True):
         cols = st.columns(len(results))
         for col, (model_key, res) in zip(cols, results.items()):
             with col:
-                st.markdown(f"### {S2_MODEL_LABELS[model_key]}")
+                st.markdown(f"### {_label(model_key)}")
                 if res["prediction"] == 1:
                     st.error(f"⚠️ {res['label']}")
                 else:

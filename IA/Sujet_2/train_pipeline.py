@@ -12,7 +12,7 @@ import json
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from src.preprocessing import load_data, engineer_features, get_train_test_split, FEATURES
-from src.train import build_pipelines, cross_validate_models, train_and_save
+from src.train import build_pipelines, cross_validate_models, train_and_save, MODEL_FILENAMES
 from src.evaluate import (
     evaluate_models,
     plot_confusion_matrices,
@@ -87,6 +87,19 @@ def main():
     results_df.to_csv(os.path.join(results_dir, 'model_comparison.csv'))
 
     print(f"\nFigures et métriques sauvegardées dans : {results_dir}")
+
+    # ── 6. Génération automatique de models_config.json et labels.json ──────────────────
+    _base = os.path.dirname(os.path.abspath(__file__))
+    models_config = {
+        'churn': {_name_map[k]: v for k, v in MODEL_FILENAMES.items()},
+    }
+    with open(os.path.join(_base, 'models_config.json'), 'w', encoding='utf-8') as f:
+        json.dump(models_config, f, indent=2)
+    labels = {v: k for k, v in _name_map.items()}
+    with open(os.path.join(_base, 'labels.json'), 'w', encoding='utf-8') as f:
+        json.dump(labels, f, indent=2, ensure_ascii=False)
+    print(f"models_config.json et labels.json mis à jour.")
+
     print("\nPipeline terminé ✓")
 
 

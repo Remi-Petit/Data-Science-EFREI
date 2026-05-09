@@ -1,0 +1,8 @@
+{
+  "churn": {
+    "logistic_regression": "logistic_regression_churn.joblib",
+    "random_forest": "random_forest_churn.joblib",
+    "xgboost": "xgboost_churn.joblib",
+    "mlp": "mlp_churn.joblib"
+  }
+}

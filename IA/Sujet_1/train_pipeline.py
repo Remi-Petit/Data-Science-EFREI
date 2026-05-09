@@ -12,7 +12,7 @@ import json
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from src.preprocessing import load_data, engineer_features, get_train_test_split, get_type_train_test_split, FEATURES
-from src.train import build_pipelines, cross_validate_models, train_and_save, train_and_save_type
+from src.train import build_pipelines, cross_validate_models, train_and_save, train_and_save_type, MODEL_FILENAMES, MODEL_FILENAMES_TYPE
 from src.evaluate import evaluate_models, evaluate_models_type, plot_confusion_matrices, plot_roc_curves, plot_feature_importance
 
 
@@ -89,6 +89,20 @@ def main():
         fig.savefig(os.path.join(model_dir, 'feature_importance.png'), dpi=120)
 
     print(f"\nFigures sauvegardées dans : {results_dir}")
+
+    # ── 6. Génération automatique de models_config.json et labels.json ──────────────────
+    _base = os.path.dirname(os.path.abspath(__file__))
+    models_config = {
+        'failure_24h':  {_name_map[k]: v for k, v in MODEL_FILENAMES.items()},
+        'failure_type': {_name_map[k]: v for k, v in MODEL_FILENAMES_TYPE.items()},
+    }
+    with open(os.path.join(_base, 'models_config.json'), 'w', encoding='utf-8') as f:
+        json.dump(models_config, f, indent=2)
+    labels = {v: k for k, v in _name_map.items()}
+    with open(os.path.join(_base, 'labels.json'), 'w', encoding='utf-8') as f:
+        json.dump(labels, f, indent=2, ensure_ascii=False)
+    print(f"models_config.json et labels.json mis à jour.")
+
     print("\nPipeline terminé ✓")
 
 

@@ -109,6 +109,18 @@ def main():
     # ── 4. Fin ─────────────────────────────────────────────────────────────────
     print(f"\n[4/4] Modèles sauvegardés → {MODELS_DIR}")
     print(f"      Résultats  sauvegardés → {RESULTS_DIR}")
+
+    # Génération automatique de models_config.json et labels.json
+    models_config = {
+        'regression':     {_name_map_reg[k]: v for k, v in MODEL_FILENAMES_REG.items()},
+        'classification': {_name_map_cls[k]: v for k, v in MODEL_FILENAMES_CLS.items()},
+    }
+    with open(os.path.join(_src_dir, 'models_config.json'), 'w', encoding='utf-8') as f:
+        json.dump(models_config, f, indent=2)
+    labels = {v: k for k, v in _name_map_reg.items()}
+    with open(os.path.join(_src_dir, 'labels.json'), 'w', encoding='utf-8') as f:
+        json.dump(labels, f, indent=2, ensure_ascii=False)
+    print("  models_config.json et labels.json mis à jour.")
     print("\n" + "=" * 55)
     print("  Pipeline terminé avec succès.")
     print("=" * 55)

@@ -1,0 +1,12 @@
+{
+  "regression": {
+    "linear_regression": "linear_regression_sales.joblib",
+    "random_forest": "random_forest_sales.joblib",
+    "xgboost": "xgboost_sales.joblib",
+    "mlp": "mlp_sales.joblib"
+  },
+  "classification": {
+    "random_forest": "random_forest_performance.joblib",
+    "xgboost": "xgboost_performance.joblib"
+  }
+}

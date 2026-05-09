@@ -1,0 +1,6 @@
+{
+  "linear_regression": "Régression Linéaire",
+  "random_forest": "Random Forest",
+  "xgboost": "XGBoost",
+  "mlp": "MLP (Deep Learning)"
+}

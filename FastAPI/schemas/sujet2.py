@@ -1,8 +1,6 @@
 from pydantic import BaseModel, field_validator
 from typing import List, Literal
 
-S2ModelName = Literal["logistic_regression", "random_forest", "xgboost", "mlp"]
-
 S2_CAT_MAPS = {
     "gender":                 {"Female": 0, "Male": 1},
     "customer_segment":       {"Enterprise": 0, "Individual": 1, "SME": 2},
@@ -47,11 +45,16 @@ class ChurnData(BaseModel):
     price_increase_last_3m: Literal["No", "Yes"]
     survey_response: Literal["Neutral", "Satisfied", "Unsatisfied"]
     complaint_type: Literal["Billing", "Service", "Technical", "Unknown"] = "Unknown"
-    models: List[S2ModelName] = ["random_forest"]
+    models: List[str] = ["random_forest"]
 
     @field_validator("models")
     @classmethod
-    def models_not_empty(cls, v):
+    def models_valid(cls, v):
+        from ml_models import S2_MODELS
         if not v:
             raise ValueError("La liste 'models' ne peut pas être vide.")
-        return list(dict.fromkeys(v))
+        v = list(dict.fromkeys(v))
+        unavailable = [m for m in v if m not in S2_MODELS]
+        if unavailable:
+            raise ValueError(f"Modèle(s) non disponible(s) : {unavailable}. Disponibles : {list(S2_MODELS.keys())}")
+        return v

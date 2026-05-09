@@ -5,12 +5,25 @@ import pandas as pd
 
 API_URL = os.getenv('API_URL', 'http://localhost:8000')
 
-S3_MODEL_LABELS = {
-    "linear_regression": "Régression Linéaire",
-    "random_forest":     "Random Forest",
-    "xgboost":           "XGBoost",
-    "mlp":               "MLP (Deep Learning)",
-}
+
+@st.cache_data(ttl=60)
+def _fetch_models() -> tuple[list[str], dict[str, str]]:
+    try:
+        r = requests.get(f"{API_URL}/sujet-3/models", timeout=5)
+        r.raise_for_status()
+        entries = r.json()["models"]
+        models = [e["name"] for e in entries]
+        labels = {e["name"]: e["label"] for e in entries}
+        return models, labels
+    except Exception:
+        fallback = ["linear_regression", "random_forest", "xgboost", "mlp"]
+        return fallback, {k: k for k in fallback}
+
+available_models, model_labels = _fetch_models()
+
+def _label(key: str) -> str:
+    return model_labels.get(key, key.replace('_', ' ').title())
+
 PERF_COLORS = {
     "Low":    ("🔴", "error"),
     "Medium": ("🟡", "warning"),
@@ -55,9 +68,9 @@ st.divider()
 
 selected_models = st.multiselect(
     "🤖 Modèles à comparer",
-    options=list(S3_MODEL_LABELS.keys()),
-    default=["linear_regression"],
-    format_func=lambda x: S3_MODEL_LABELS[x],
+    options=available_models,
+    default=available_models[:1],
+    format_func=_label,
 )
 
 st.divider()
@@ -89,7 +102,7 @@ if st.button("🔍 Lancer la prédiction", use_container_width=True):
         cols = st.columns(len(results))
         for col, (model_key, res) in zip(cols, results.items()):
             with col:
-                st.markdown(f"### {S3_MODEL_LABELS[model_key]}")
+                st.markdown(f"### {_label(model_key)}")
                 st.metric("Ventes prédites", f"{res['sales_prediction']:.2f} M€")
                 st.metric("ROI estimé", f"{res['roi_estimate']:.2f}x" if res['roi_estimate'] else "–")
 
@@ -102,7 +115,7 @@ if st.button("🔍 Lancer la prédiction", use_container_width=True):
             st.subheader("📋 Tableau comparatif")
             summary = pd.DataFrame([
                 {
-                    "Modèle":                S3_MODEL_LABELS[k],
+                    "Modèle":                _label(k),
                     "Ventes prédites (M€)":  round(v["sales_prediction"], 2),
                     "ROI estimé":            round(v["roi_estimate"], 2) if v["roi_estimate"] else None,
                     "Performance":           v["performance"],

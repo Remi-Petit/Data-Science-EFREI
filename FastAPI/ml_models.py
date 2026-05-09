@@ -1,45 +1,52 @@
 import joblib
+import json
 import os
 import sys
 
+
+def _load_config(config_path: str) -> dict:
+    if not os.path.isfile(config_path):
+        print(f"[ml_models] Config absente : {config_path}")
+        return {}
+    with open(config_path, encoding='utf-8') as f:
+        return json.load(f)
+
+
+def _load_group(models_dir: str, group: dict) -> dict:
+    """Charge un groupe {clé: fichier}, ignore les fichiers absents."""
+    result = {}
+    for key, filename in group.items():
+        path = os.path.join(models_dir, filename)
+        if not os.path.isfile(path):
+            print(f"[ml_models] Modèle absent, ignoré : {path}")
+            continue
+        result[key] = joblib.load(path)
+    return result
+
+
 # ── SUJET 1 – Maintenance prédictive ─────────────────────────────────────────
 
-_s1_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'IA', 'Sujet_1')
-if _s1_dir not in sys.path:
-    sys.path.insert(0, _s1_dir)
+_s1_base = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'IA', 'Sujet_1')
+if _s1_base not in sys.path:
+    sys.path.insert(0, _s1_base)
 
-_s1_models_dir = os.getenv('S1_MODELS_DIR', os.path.join(os.path.dirname(__file__), '..', 'IA', 'Sujet_1', 'models'))
-S1_MODELS = {
-    "logistic_regression": joblib.load(os.path.join(_s1_models_dir, 'logistic_regression_failure_24h.joblib')),
-    "random_forest":       joblib.load(os.path.join(_s1_models_dir, 'random_forest_failure_24h.joblib')),
-    "xgboost":             joblib.load(os.path.join(_s1_models_dir, 'xgboost_failure_24h.joblib')),
-}
-S1_MODELS_TYPE = {
-    "logistic_regression": joblib.load(os.path.join(_s1_models_dir, 'logistic_regression_failure_type.joblib')),
-    "random_forest":       joblib.load(os.path.join(_s1_models_dir, 'random_forest_failure_type.joblib')),
-    "xgboost":             joblib.load(os.path.join(_s1_models_dir, 'xgboost_failure_type.joblib')),
-}
+_s1_models_dir = os.getenv('S1_MODELS_DIR', os.path.join(_s1_base, 'models'))
+_s1_config     = _load_config(os.path.join(_s1_base, 'models_config.json'))
+S1_MODELS      = _load_group(_s1_models_dir, _s1_config.get('failure_24h', {}))
+S1_MODELS_TYPE = _load_group(_s1_models_dir, _s1_config.get('failure_type', {}))
 
 # ── SUJET 2 – Churn client ────────────────────────────────────────────────────
 
-_s2_models_dir = os.getenv('S2_MODELS_DIR', os.path.join(os.path.dirname(__file__), '..', 'IA', 'Sujet_2', 'models'))
-S2_MODELS = {
-    "logistic_regression": joblib.load(os.path.join(_s2_models_dir, 'logistic_regression_churn.joblib')),
-    "random_forest":       joblib.load(os.path.join(_s2_models_dir, 'random_forest_churn.joblib')),
-    "xgboost":             joblib.load(os.path.join(_s2_models_dir, 'xgboost_churn.joblib')),
-    "mlp":                 joblib.load(os.path.join(_s2_models_dir, 'mlp_churn.joblib')),
-}
+_s2_base       = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'IA', 'Sujet_2')
+_s2_models_dir = os.getenv('S2_MODELS_DIR', os.path.join(_s2_base, 'models'))
+_s2_config     = _load_config(os.path.join(_s2_base, 'models_config.json'))
+S2_MODELS      = _load_group(_s2_models_dir, _s2_config.get('churn', {}))
 
 # ── SUJET 3 – Marketing ROI ───────────────────────────────────────────────────
 
-_s3_models_dir = os.getenv('S3_MODELS_DIR', os.path.join(os.path.dirname(__file__), '..', 'IA', 'Sujet_3', 'models'))
-S3_REG_MODELS = {
-    "linear_regression": joblib.load(os.path.join(_s3_models_dir, 'linear_regression_sales.joblib')),
-    "random_forest":     joblib.load(os.path.join(_s3_models_dir, 'random_forest_sales.joblib')),
-    "xgboost":           joblib.load(os.path.join(_s3_models_dir, 'xgboost_sales.joblib')),
-    "mlp":               joblib.load(os.path.join(_s3_models_dir, 'mlp_sales.joblib')),
-}
-S3_CLS_MODELS = {
-    "random_forest": joblib.load(os.path.join(_s3_models_dir, 'random_forest_performance.joblib')),
-    "xgboost":       joblib.load(os.path.join(_s3_models_dir, 'xgboost_performance.joblib')),
-}
+_s3_base       = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'IA', 'Sujet_3')
+_s3_models_dir = os.getenv('S3_MODELS_DIR', os.path.join(_s3_base, 'models'))
+_s3_config     = _load_config(os.path.join(_s3_base, 'models_config.json'))
+S3_REG_MODELS  = _load_group(_s3_models_dir, _s3_config.get('regression', {}))
+S3_CLS_MODELS  = _load_group(_s3_models_dir, _s3_config.get('classification', {}))
+

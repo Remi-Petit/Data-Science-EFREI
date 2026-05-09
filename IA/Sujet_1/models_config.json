@@ -1,0 +1,12 @@
+{
+  "failure_24h": {
+    "logistic_regression": "logistic_regression_failure_24h.joblib",
+    "random_forest": "random_forest_failure_24h.joblib",
+    "xgboost": "xgboost_failure_24h.joblib"
+  },
+  "failure_type": {
+    "logistic_regression": "logistic_regression_failure_type.joblib",
+    "random_forest": "random_forest_failure_type.joblib",
+    "xgboost": "xgboost_failure_type.joblib"
+  }
+}
