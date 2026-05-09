@@ -20,3 +20,6 @@ Thumbs.db
 # IDE
 .vscode/
 .idea/
+
+# Modèles ML (trop lourds pour GitHub, générés par la CI)
+*.joblib

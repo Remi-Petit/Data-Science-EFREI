@@ -23,12 +23,44 @@ jobs:
       - name: Run flake8 (syntax & logic errors only)
         run: flake8 FastAPI/ Streamlit/ IA/ --select=E9,F63,F7,F82 --show-source
 
-  build:
-    name: Build Docker images
+  train:
+    name: Train ML models
     runs-on: ubuntu-latest
     needs: lint
     steps:
       - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install training dependencies
+        run: pip install pandas scikit-learn xgboost joblib matplotlib
+
+      - name: Train all models
+        run: python IA/train_all.py
+
+      - name: Upload trained models
+        uses: actions/upload-artifact@v4
+        with:
+          name: trained-models
+          path: |
+            IA/Sujet_1/models/
+            IA/Sujet_2/models/
+            IA/Sujet_3/models/
+          retention-days: 1
+
+  build:
+    name: Build Docker images
+    runs-on: ubuntu-latest
+    needs: train
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download trained models
+        uses: actions/download-artifact@v4
+        with:
+          name: trained-models
 
       - name: Build FastAPI image
         run: docker build -f FastAPI/Dockerfile -t fastapi-app .
@@ -42,6 +74,11 @@ jobs:
     needs: build
     steps:
       - uses: actions/checkout@v4
+
+      - name: Download trained models
+        uses: actions/download-artifact@v4
+        with:
+          name: trained-models
 
       - name: Start services
         run: docker compose up -d --build
@@ -85,6 +122,11 @@ jobs:
     if: github.ref == 'refs/heads/master' && github.event_name == 'push'
     steps:
       - uses: actions/checkout@v4
+
+      - name: Download trained models
+        uses: actions/download-artifact@v4
+        with:
+          name: trained-models
 
       - name: Stop existing containers
         run: docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose.prod.yml down || true
