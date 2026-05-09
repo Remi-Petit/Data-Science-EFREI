@@ -33,8 +33,8 @@ def get_models():
 
 @router.get("/stats")
 def get_stats():
-    result = {"failure_24h": {}, "failure_type": {}}
-    for task in ("failure_24h", "failure_type"):
+    result = {"failure_24h": {}, "failure_type": {}, "rul": {}}
+    for task in ("failure_24h", "failure_type", "rul"):
         task_dir = os.path.join(_STATS_DIR, task)
         if not os.path.isdir(task_dir):
             continue

@@ -15,6 +15,7 @@ FEATURES = [
 ]
 TARGET = 'failure_within_24h'
 TARGET_TYPE = 'failure_type'
+TARGET_RUL = 'rul_hours'
 
 
 def load_data(path: str = DATA_PATH) -> pd.DataFrame:
@@ -56,3 +57,10 @@ def get_type_train_test_split(df: pd.DataFrame, test_size: float = 0.2, random_s
     X = df_failures[FEATURES]
     y = df_failures[TARGET_TYPE]
     return train_test_split(X, y, test_size=test_size, random_state=random_state, stratify=y)
+
+
+def get_rul_train_test_split(df: pd.DataFrame, test_size: float = 0.2, random_state: int = 42):
+    """Retourne le split pour la régression RUL (Remaining Useful Life en heures)."""
+    X = df[FEATURES]
+    y = df[TARGET_RUL]
+    return train_test_split(X, y, test_size=test_size, random_state=random_state)

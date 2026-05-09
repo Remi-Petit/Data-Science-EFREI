@@ -129,6 +129,8 @@ with tab_pred:
                     else:
                         st.success(f"✅ {res['label']}")
                     st.metric("Probabilité de panne", f"{res['probabilite_panne'] * 100:.2f}%")
+                    if "rul_heures" in res:
+                        st.metric("⏱️ Durée de vie restante", f"{res['rul_heures']:.1f} h")
 
                     if res["prediction"] == 1 and "cause_potentielle" in res:
                         st.markdown("**Cause potentielle la plus probable :**")
@@ -233,6 +235,11 @@ with tab_dash:
                     mc1.metric("Vibration",    f"{r['vibration_rms']} g")
                     mc2.metric("Température",  f"{r['temperature_motor']} °C")
                     mc3.metric("Maintenance",  f"{r['hours_since_maintenance']} h")
+
+                    if "rul_heures" in r:
+                        rul_val = r["rul_heures"]
+                        rul_color = "normal" if rul_val > 48 else ("off" if rul_val > 12 else "inverse")
+                        st.metric("⏱️ Durée de vie restante", f"{rul_val:.1f} h")
 
                     if pred == 1 and r.get("cause_potentielle"):
                         st.info(f"🔎 Cause probable : {CAUSE_LABELS.get(r['cause_potentielle'], r['cause_potentielle'])}")

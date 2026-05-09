@@ -5,13 +5,13 @@ import joblib
 import numpy as np
 import pandas as pd
 from sklearn.pipeline import Pipeline
-from sklearn.linear_model import LogisticRegression
-from sklearn.ensemble import RandomForestClassifier
+from sklearn.linear_model import LogisticRegression, Ridge
+from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 from sklearn.impute import SimpleImputer
 from sklearn.preprocessing import StandardScaler, LabelEncoder
 from sklearn.model_selection import cross_val_score, StratifiedKFold
 from sklearn.base import BaseEstimator, ClassifierMixin
-from xgboost import XGBClassifier
+from xgboost import XGBClassifier, XGBRegressor
 
 MODEL_FILENAMES = {
     'Logistic Regression': 'logistic_regression_failure_24h.joblib',
@@ -126,6 +126,50 @@ def train_and_save_type(X_train, y_train, model_dir: str = 'models') -> dict:
         pipe.fit(X_train, y_train)
         trained[name] = pipe
         out_path = f"{model_dir}/{MODEL_FILENAMES_TYPE[name]}"
+        joblib.dump(pipe, out_path)
+        print(f"  {name:25s} → {out_path}")
+    return trained
+
+
+# ── RUL (Remaining Useful Life) – régression ─────────────────────────────────
+
+MODEL_FILENAMES_RUL = {
+    'Régression Linéaire': 'linear_regression_rul.joblib',
+    'Random Forest':       'random_forest_rul.joblib',
+    'XGBoost':             'xgboost_rul.joblib',
+}
+
+
+def build_pipelines_rul() -> dict:
+    """Retourne les pipelines de régression pour estimer le RUL (heures restantes)."""
+    return {
+        'Régression Linéaire': Pipeline([
+            ('imputer', SimpleImputer(strategy='median')),
+            ('scaler', StandardScaler()),
+            ('reg', Ridge(alpha=1.0)),
+        ]),
+        'Random Forest': Pipeline([
+            ('imputer', SimpleImputer(strategy='median')),
+            ('reg', RandomForestRegressor(n_estimators=200, random_state=42, n_jobs=-1)),
+        ]),
+        'XGBoost': Pipeline([
+            ('imputer', SimpleImputer(strategy='median')),
+            ('reg', XGBRegressor(
+                n_estimators=200, learning_rate=0.1, max_depth=6,
+                random_state=42, n_jobs=-1, eval_metric='rmse',
+            )),
+        ]),
+    }
+
+
+def train_and_save_rul(X_train, y_train, model_dir: str = 'models') -> dict:
+    """Entraîne les 3 régresseurs RUL et les sauvegarde."""
+    pipelines = build_pipelines_rul()
+    trained = {}
+    for name, pipe in pipelines.items():
+        pipe.fit(X_train, y_train)
+        trained[name] = pipe
+        out_path = f"{model_dir}/{MODEL_FILENAMES_RUL[name]}"
         joblib.dump(pipe, out_path)
         print(f"  {name:25s} → {out_path}")
     return trained

@@ -1,6 +1,6 @@
 import pandas as pd
 from schemas.sujet1 import MachineData
-from ml_models import S1_MODELS, S1_MODELS_TYPE
+from ml_models import S1_MODELS, S1_MODELS_TYPE, S1_MODELS_RUL
 
 
 def predict(data: MachineData) -> dict:
@@ -25,6 +25,10 @@ def predict(data: MachineData) -> dict:
             failure_scores = {cls: p for cls, p in all_scores.items() if cls != 'none'}
             result["cause_potentielle"] = max(failure_scores, key=failure_scores.get)
             result["probabilites_causes"] = all_scores
+        if model_name in S1_MODELS_RUL:
+            rul_model = S1_MODELS_RUL[model_name]
+            rul = float(rul_model.predict(df)[0])
+            result["rul_heures"] = round(max(rul, 0.0), 1)
         results[model_name] = result
 
     return {"results": results}

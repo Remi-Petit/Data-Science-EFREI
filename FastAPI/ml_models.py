@@ -38,6 +38,7 @@ _s1_models_dir = os.getenv('S1_MODELS_DIR', os.path.join(_s1_base, 'models'))
 _s1_config     = _load_config(os.path.join(_s1_base, 'models_config.json'))
 S1_MODELS      = _load_group(_s1_models_dir, _s1_config.get('failure_24h', {}))
 S1_MODELS_TYPE = _load_group(_s1_models_dir, _s1_config.get('failure_type', {}))
+S1_MODELS_RUL  = _load_group(_s1_models_dir, _s1_config.get('rul', {}))
 
 # ── SUJET 2 – Churn client ────────────────────────────────────────────────────
 

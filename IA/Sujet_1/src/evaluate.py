@@ -4,9 +4,11 @@ importance des features.
 """
 import pandas as pd
 import matplotlib.pyplot as plt
+import numpy as np
 from sklearn.metrics import (
     classification_report, confusion_matrix, roc_auc_score,
     RocCurveDisplay, ConfusionMatrixDisplay,
+    mean_absolute_error, mean_squared_error, r2_score,
 )
 
 
@@ -57,6 +59,20 @@ def evaluate_models(trained_models: dict, X_test, y_test) -> pd.DataFrame:
             'Recall':     round(report['Panne']['recall'], 4),
             'F1-score':   round(report['Panne']['f1-score'], 4),
             'ROC-AUC':    round(roc_auc_score(y_test, y_prob), 4),
+        })
+    return pd.DataFrame(rows).set_index('Modèle')
+
+
+def evaluate_models_rul(trained_models: dict, X_test, y_test) -> pd.DataFrame:
+    """Calcule MAE, RMSE et R² pour les modèles de régression RUL."""
+    rows = []
+    for name, pipe in trained_models.items():
+        y_pred = pipe.predict(X_test)
+        rows.append({
+            'Modèle': name,
+            'MAE':    round(mean_absolute_error(y_test, y_pred), 4),
+            'RMSE':   round(np.sqrt(mean_squared_error(y_test, y_pred)), 4),
+            'R²':     round(r2_score(y_test, y_pred), 4),
         })
     return pd.DataFrame(rows).set_index('Modèle')
 

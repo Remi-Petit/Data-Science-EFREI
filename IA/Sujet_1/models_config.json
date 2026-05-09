@@ -26,5 +26,19 @@
       "file": "xgboost_failure_type.joblib",
       "label": "XGBoost"
     }
+  },
+  "rul": {
+    "logistic_regression": {
+      "file": "linear_regression_rul.joblib",
+      "label": "Régression Linéaire"
+    },
+    "random_forest": {
+      "file": "random_forest_rul.joblib",
+      "label": "Random Forest"
+    },
+    "xgboost": {
+      "file": "xgboost_rul.joblib",
+      "label": "XGBoost"
+    }
   }
 }
