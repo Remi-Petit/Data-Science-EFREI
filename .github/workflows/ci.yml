@@ -35,7 +35,7 @@ jobs:
           python-version: "3.11"
 
       - name: Install training dependencies
-        run: pip install pandas scikit-learn xgboost joblib matplotlib
+        run: pip install -r IA/requirements.txt
 
       - name: Train all models
         run: python IA/train_all.py
@@ -61,7 +61,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: trained-models
-          path: .
+          path: IA
 
       - name: Build FastAPI image
         run: docker build -f FastAPI/Dockerfile -t fastapi-app .
@@ -80,7 +80,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: trained-models
-          path: .
+          path: IA
 
       - name: Start services
         run: docker compose up -d --build
@@ -125,17 +125,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Download trained models
-        uses: actions/download-artifact@v4
-        with:
-          name: trained-models
-          path: .
+      - name: Install training dependencies
+        run: pip install -r IA/requirements.txt
+
+      - name: Train ML models
+        run: python IA/train_all.py
 
       - name: Stop existing containers
         run: docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose.prod.yml down || true
 
       - name: Build and start services
-        run: docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose.prod.yml build --no-cache && docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose.prod.yml up -d
+        run: docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose.prod.yml build && docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose.prod.yml up -d
 
       - name: Wait for FastAPI health
         run: |
