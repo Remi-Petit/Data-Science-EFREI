@@ -1,0 +1,14 @@
+.git/
+.venv/
+**/__pycache__/
+**/*.pyc
+**/*.pyo
+
+# Données d'entraînement et notebooks (inutiles en prod)
+IA/*/data/
+IA/*/notebook/
+IA/*/results/
+IA/*/train_pipeline.py
+
+# Fichiers locaux Streamlit
+Streamlit/.streamlit/
