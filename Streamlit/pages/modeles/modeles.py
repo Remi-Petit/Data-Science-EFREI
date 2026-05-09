@@ -2,6 +2,7 @@ import os
 import streamlit as st
 import requests
 import pandas as pd
+import plotly.express as px
 
 API_URL = os.getenv("API_URL", "http://localhost:8000")
 
@@ -74,11 +75,25 @@ def _show_group(
     # ── Graphique ────────────────────────────────────────────────────────────
     chart_df = (
         df[["Modèle", rank_col]]
-        .set_index("Modèle")
-        .sort_values(rank_col, ascending=True)   # bar_chart affiche bas → haut
+        .sort_values(rank_col, ascending=True)  # meilleur en bas = affiché en haut par plotly
     )
-    st.markdown(f"**{rank_col}** par modèle")
-    st.bar_chart(chart_df, horizontal=True)
+    fig = px.bar(
+        chart_df, x=rank_col, y="Modèle",
+        orientation="h",
+        labels={rank_col: rank_col, "Modèle": ""},
+        color_discrete_sequence=["#83c9ff"],
+        template="plotly_dark",
+    )
+    fig.update_traces(texttemplate="%{x:.2%}" if as_pct else "%{x:.4f}", textposition="outside", textfont_color="white")
+    fig.update_layout(
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)",
+        margin=dict(l=0, r=60, t=0, b=0),
+        height=60 + 50 * len(chart_df),
+        xaxis=dict(showgrid=True, gridcolor="rgba(255,255,255,0.1)", zeroline=False),
+        yaxis=dict(showgrid=False),
+    )
+    st.plotly_chart(fig, use_container_width=True)
 
 
 # ── Page ─────────────────────────────────────────────────────────────────────
