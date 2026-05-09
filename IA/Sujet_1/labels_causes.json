@@ -1,0 +1,7 @@
+{
+  "bearing":        "Roulement (Bearing)",
+  "motor_overheat": "Surchauffe moteur",
+  "hydraulic":      "Défaut hydraulique",
+  "electrical":     "Défaut électrique",
+  "none":           "Aucune panne"
+}

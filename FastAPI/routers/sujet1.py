@@ -75,6 +75,18 @@ def get_stats():
     return {"stats": result}
 
 
+@router.get("/cause-labels")
+def get_cause_labels():
+    """Retourne les labels lisibles pour chaque type de panne."""
+    labels_file = os.path.join(_S1_BASE, 'labels_causes.json')
+    if os.path.isfile(labels_file):
+        with open(labels_file, encoding='utf-8') as f:
+            return {"labels": json.load(f)}
+    from ml_models import S1_MODELS_TYPE
+    classes = {str(cls): str(cls) for m in S1_MODELS_TYPE.values() for cls in m.classes_}
+    return {"labels": classes}
+
+
 @router.post("/predict")
 def predict(data: MachineData):
     return controller.predict(data)

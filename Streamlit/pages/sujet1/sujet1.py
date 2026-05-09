@@ -43,13 +43,16 @@ def _label(key: str, sorted_list: list[str] | None = None) -> str:
     base = model_labels.get(key, key.replace('_', ' ').title())
     return f"{medal} {base}".strip() if medal else base
 
-CAUSE_LABELS = {
-    "bearing":        "Roulement (Bearing)",
-    "motor_overheat": "Surchauffe moteur",
-    "hydraulic":      "Défaut hydraulique",
-    "electrical":     "Défaut électrique",
-    "none":           "Aucune panne",
-}
+@st.cache_data(ttl=300)
+def _fetch_cause_labels() -> dict[str, str]:
+    try:
+        r = requests.get(f"{API_URL}/sujet-1/cause-labels", timeout=5)
+        r.raise_for_status()
+        return r.json()["labels"]
+    except Exception:
+        return {}
+
+CAUSE_LABELS = _fetch_cause_labels()
 
 st.title("🔧 Prédiction de panne machine")
 st.divider()
