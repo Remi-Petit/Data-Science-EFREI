@@ -7,8 +7,9 @@ import json
 
 router = APIRouter(prefix="/sujet-3", tags=["Sujet 3 – Marketing ROI"])
 
-_STATS_DIR = os.getenv('S3_STATS_DIR', os.path.join(os.path.dirname(__file__), '..', '..', 'IA', 'Sujet_3', 'models_stats'))
-_CONFIG_FILE = os.path.join(os.path.dirname(__file__), '..', '..', 'IA', 'Sujet_3', 'models_config.json')
+_S3_BASE     = os.getenv('S3_BASE_DIR', os.path.normpath(os.path.join(os.path.dirname(__file__), '..', '..', 'IA', 'Sujet_3')))
+_STATS_DIR   = os.getenv('S3_STATS_DIR', os.path.join(_S3_BASE, 'models_stats'))
+_CONFIG_FILE = os.path.join(_S3_BASE, 'models_config.json')
 
 
 def _load_labels() -> dict:

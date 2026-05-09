@@ -7,15 +7,22 @@ import json
 
 router = APIRouter(prefix="/sujet-1", tags=["Sujet 1 – Maintenance prédictive"])
 
-_STATS_DIR = os.getenv('S1_STATS_DIR', os.path.join(os.path.dirname(__file__), '..', '..', 'IA', 'Sujet_1', 'models_stats'))
-_LABELS_FILE = os.path.join(os.path.dirname(__file__), '..', '..', 'IA', 'Sujet_1', 'labels.json')
+_S1_BASE    = os.getenv('S1_BASE_DIR', os.path.normpath(os.path.join(os.path.dirname(__file__), '..', '..', 'IA', 'Sujet_1')))
+_STATS_DIR  = os.getenv('S1_STATS_DIR', os.path.join(_S1_BASE, 'models_stats'))
+_CONFIG_FILE = os.path.join(_S1_BASE, 'models_config.json')
 
 
 def _load_labels() -> dict:
-    if os.path.isfile(_LABELS_FILE):
-        with open(_LABELS_FILE, encoding='utf-8') as f:
-            return json.load(f)
-    return {}
+    if not os.path.isfile(_CONFIG_FILE):
+        return {}
+    with open(_CONFIG_FILE, encoding='utf-8') as f:
+        config = json.load(f)
+    labels = {}
+    for group in config.values():
+        for key, entry in group.items():
+            if isinstance(entry, dict) and "label" in entry:
+                labels[key] = entry["label"]
+    return labels
 
 
 @router.get("/models")

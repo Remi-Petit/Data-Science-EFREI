@@ -7,8 +7,9 @@ import json
 
 router = APIRouter(prefix="/sujet-2", tags=["Sujet 2 – Churn client"])
 
-_STATS_DIR = os.getenv('S2_STATS_DIR', os.path.join(os.path.dirname(__file__), '..', '..', 'IA', 'Sujet_2', 'models_stats'))
-_CONFIG_FILE = os.path.join(os.path.dirname(__file__), '..', '..', 'IA', 'Sujet_2', 'models_config.json')
+_S2_BASE     = os.getenv('S2_BASE_DIR', os.path.normpath(os.path.join(os.path.dirname(__file__), '..', '..', 'IA', 'Sujet_2')))
+_STATS_DIR   = os.getenv('S2_STATS_DIR', os.path.join(_S2_BASE, 'models_stats'))
+_CONFIG_FILE = os.path.join(_S2_BASE, 'models_config.json')
 
 
 def _load_labels() -> dict:
