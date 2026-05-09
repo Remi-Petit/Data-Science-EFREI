@@ -71,7 +71,9 @@ def main():
     # Feature importance (Random Forest)
     fi = get_feature_importance(trained_reg['Random Forest'], FEATURES)
     if not fi.empty:
-        fi.to_csv(os.path.join(RESULTS_DIR, 'feature_importance_rf.csv'), index=False)
+        rf_dir = os.path.join(RESULTS_DIR, 'random_forest')
+        os.makedirs(rf_dir, exist_ok=True)
+        fi.to_csv(os.path.join(rf_dir, 'feature_importance.csv'), index=False)
         print("\n  Feature importance – Random Forest :")
         print(fi.to_string(index=False))
 

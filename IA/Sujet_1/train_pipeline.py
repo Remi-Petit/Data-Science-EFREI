@@ -57,8 +57,11 @@ def main():
     fig_roc = plot_roc_curves(trained, X_test, y_test)
     fig_roc.savefig(os.path.join(results_dir, 'roc_curves.png'), dpi=120)
 
-    fig_fi, _ = plot_feature_importance(trained, FEATURES)
-    fig_fi.savefig(os.path.join(results_dir, 'feature_importance.png'), dpi=120)
+    fi_figures = plot_feature_importance(trained, FEATURES)
+    for model_name, fig in fi_figures.items():
+        model_dir = os.path.join(results_dir, model_name)
+        os.makedirs(model_dir, exist_ok=True)
+        fig.savefig(os.path.join(model_dir, 'feature_importance.png'), dpi=120)
 
     print(f"\nFigures sauvegardées dans : {results_dir}")
     print("\nPipeline terminé ✓")

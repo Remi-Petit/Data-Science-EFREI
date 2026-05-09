@@ -90,53 +90,36 @@ def plot_pr_curves(trained_models: dict, X_test, y_test) -> plt.Figure:
 def plot_feature_importance(
     trained_models: dict,
     features: list,
-) -> tuple:
+) -> dict:
     """
-    Bar chart de l'importance native des features pour les modèles à arbres
-    (Random Forest, XGBoost, GradientBoosting).
-    Retourne (figure, DataFrame des importances).
+    Retourne un dict {model_name: Figure} avec un bar chart d'importance
+    des features par modèle à arbres.
     """
-    tree_models = {
-        name: pipe
-        for name, pipe in trained_models.items()
-        if hasattr(pipe.named_steps['clf'], 'feature_importances_')
-    }
-
-    n = len(tree_models)
-    if n == 0:
-        return None, pd.DataFrame()
-
-    fig, axes = plt.subplots(1, n, figsize=(9 * n, 6), sharey=False)
-    if n == 1:
-        axes = [axes]
-
-    all_imp = {}
-    for ax, (name, pipe) in zip(axes, tree_models.items()):
+    figures = {}
+    for name, pipe in trained_models.items():
+        if not hasattr(pipe.named_steps['clf'], 'feature_importances_'):
+            continue
         importances = pipe.named_steps['clf'].feature_importances_
         feat_imp = pd.Series(importances, index=features).sort_values(ascending=False)
-        all_imp[name] = feat_imp
+        fig, ax = plt.subplots(figsize=(9, 6))
         feat_imp.head(15).plot(kind='bar', color='steelblue', edgecolor='white', ax=ax)
         ax.set_title(f'Top 15 features – {name}')
         ax.set_ylabel('Importance')
         ax.tick_params(axis='x', rotation=35)
+        plt.tight_layout()
+        figures[name] = fig
+    return figures
 
-    plt.suptitle('Importance des features (modèles à arbres)', fontsize=14)
-    plt.tight_layout()
-    return fig, pd.DataFrame(all_imp)
 
-
-def plot_threshold_analysis(trained_models: dict, X_test, y_test) -> plt.Figure:
+def plot_threshold_analysis(trained_models: dict, X_test, y_test) -> dict:
     """
-    Courbes Precision / Recall / F1 en fonction du seuil de décision.
-    Aide à identifier le seuil optimal pour minimiser les faux négatifs (churners manqués).
+    Retourne un dict {model_name: Figure} avec les courbes Precision / Recall / F1
+    en fonction du seuil de décision, une figure par modèle.
     """
     from sklearn.metrics import precision_recall_curve
 
-    fig, axes = plt.subplots(1, len(trained_models), figsize=(7 * len(trained_models), 5))
-    if len(trained_models) == 1:
-        axes = [axes]
-
-    for ax, (name, pipe) in zip(axes, trained_models.items()):
+    figures = {}
+    for name, pipe in trained_models.items():
         y_prob = pipe.predict_proba(X_test)[:, 1]
         precisions, recalls, thresholds = precision_recall_curve(y_test, y_prob)
         denom = precisions[:-1] + recalls[:-1]
@@ -146,6 +129,7 @@ def plot_threshold_analysis(trained_models: dict, X_test, y_test) -> plt.Figure:
             0,
         )
         best_idx = np.argmax(f1_scores)
+        fig, ax = plt.subplots(figsize=(7, 5))
         ax.plot(thresholds, precisions[:-1], label='Precision', color='steelblue')
         ax.plot(thresholds, recalls[:-1],   label='Recall',    color='tomato')
         ax.plot(thresholds, f1_scores,      label='F1-score',  color='green')
@@ -154,7 +138,6 @@ def plot_threshold_analysis(trained_models: dict, X_test, y_test) -> plt.Figure:
         ax.set_title(f'Analyse du seuil – {name}')
         ax.set_xlabel('Seuil de décision')
         ax.legend()
-
-    plt.suptitle('Seuil de décision vs Precision / Recall / F1', fontsize=14)
-    plt.tight_layout()
-    return fig
+        plt.tight_layout()
+        figures[name] = fig
+    return figures

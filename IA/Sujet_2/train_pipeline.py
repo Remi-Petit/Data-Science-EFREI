@@ -62,12 +62,17 @@ def main():
     fig_pr = plot_pr_curves(trained, X_test, y_test)
     fig_pr.savefig(os.path.join(results_dir, 'pr_curves.png'), dpi=120)
 
-    fig_fi, feat_imp_df = plot_feature_importance(trained, FEATURES)
-    if fig_fi is not None:
-        fig_fi.savefig(os.path.join(results_dir, 'feature_importance.png'), dpi=120)
+    fi_figures = plot_feature_importance(trained, FEATURES)
+    for model_name, fig in fi_figures.items():
+        model_dir = os.path.join(results_dir, model_name)
+        os.makedirs(model_dir, exist_ok=True)
+        fig.savefig(os.path.join(model_dir, 'feature_importance.png'), dpi=120)
 
-    fig_thr = plot_threshold_analysis(trained, X_test, y_test)
-    fig_thr.savefig(os.path.join(results_dir, 'threshold_analysis.png'), dpi=120)
+    thr_figures = plot_threshold_analysis(trained, X_test, y_test)
+    for model_name, fig in thr_figures.items():
+        model_dir = os.path.join(results_dir, model_name)
+        os.makedirs(model_dir, exist_ok=True)
+        fig.savefig(os.path.join(model_dir, 'threshold_analysis.png'), dpi=120)
 
     # Sauvegarde du tableau comparatif
     results_df.to_csv(os.path.join(results_dir, 'model_comparison.csv'))
