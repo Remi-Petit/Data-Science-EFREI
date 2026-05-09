@@ -2,8 +2,6 @@ from fastapi import FastAPI
 from fastapi_health import health
 from ml_models import S1_MODELS, S2_MODELS, S3_REG_MODELS, S3_CLS_MODELS
 from routers import sujet1, sujet2, sujet3
-from schemas.sujet1 import MachineData
-import controllers.sujet1
 
 app = FastAPI(root_path="/api")
 
@@ -30,9 +28,3 @@ def check_models():
 
 
 app.add_api_route("/health", health([check_models]))
-
-
-# Rétrocompatibilité
-@app.post("/predict")
-def predict_legacy(data: MachineData):
-    return controllers.sujet1.predict(data)
