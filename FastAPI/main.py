@@ -7,7 +7,7 @@ import pandas as pd
 from pydantic import BaseModel, field_validator
 from typing import List, Literal
 
-app = FastAPI()
+app = FastAPI(root_path="/api")
 
 # ── SUJET 1 – Maintenance prédictive ─────────────────────────────────────────
 
