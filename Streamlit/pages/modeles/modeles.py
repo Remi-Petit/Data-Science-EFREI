@@ -16,7 +16,12 @@ def _fetch(subject: str) -> tuple[dict, dict]:
     stats_r  = requests.get(f"{API_URL}/sujet-{subject}/stats",  timeout=5)
     labels_r.raise_for_status()
     stats_r.raise_for_status()
-    labels = {e["name"]: e["label"] for e in labels_r.json()["models"]}
+    raw = labels_r.json()["models"]
+    # Sujet 1 retourne un dict groupé {group: [{name, label}]}, les autres une liste
+    if isinstance(raw, dict):
+        labels = {e["name"]: e["label"] for entries in raw.values() for e in entries}
+    else:
+        labels = {e["name"]: e["label"] for e in raw}
     return labels, stats_r.json()["stats"]
 
 

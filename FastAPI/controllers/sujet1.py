@@ -4,7 +4,7 @@ from ml_models import S1_MODELS, S1_MODELS_TYPE, S1_MODELS_RUL
 
 
 def predict(data: MachineData) -> dict:
-    features = data.model_dump(exclude={"models"})
+    features = data.model_dump(exclude={"models", "model_cause", "model_rul"})
     df = pd.DataFrame([features])
 
     results = {}
@@ -18,15 +18,18 @@ def predict(data: MachineData) -> dict:
             "probabilite_panne": round(probabilite, 4),
         }
         if prediction == 1:
-            model_type = S1_MODELS_TYPE[model_name]
-            type_proba = model_type.predict_proba(df)[0]
-            type_classes = model_type.classes_
-            all_scores = {cls: round(float(p), 4) for cls, p in zip(type_classes, type_proba)}
-            failure_scores = {cls: p for cls, p in all_scores.items() if cls != 'none'}
-            result["cause_potentielle"] = max(failure_scores, key=failure_scores.get)
-            result["probabilites_causes"] = all_scores
-        if model_name in S1_MODELS_RUL:
-            rul_model = S1_MODELS_RUL[model_name]
+            cause_key = data.model_cause or model_name
+            model_type = S1_MODELS_TYPE.get(cause_key) or S1_MODELS_TYPE.get(model_name)
+            if model_type:
+                type_proba = model_type.predict_proba(df)[0]
+                type_classes = model_type.classes_
+                all_scores = {cls: round(float(p), 4) for cls, p in zip(type_classes, type_proba)}
+                failure_scores = {cls: p for cls, p in all_scores.items() if cls != 'none'}
+                result["cause_potentielle"] = max(failure_scores, key=failure_scores.get)
+                result["probabilites_causes"] = all_scores
+        rul_key = data.model_rul or model_name
+        rul_model = S1_MODELS_RUL.get(rul_key) or S1_MODELS_RUL.get(model_name)
+        if rul_model:
             rul = float(rul_model.predict(df)[0])
             result["rul_heures"] = round(max(rul, 0.0), 1)
         results[model_name] = result

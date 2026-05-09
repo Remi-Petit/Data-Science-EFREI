@@ -1,5 +1,5 @@
 from pydantic import BaseModel, field_validator
-from typing import List
+from typing import List, Optional
 
 
 class MachineData(BaseModel):
@@ -16,6 +16,8 @@ class MachineData(BaseModel):
     dayofweek: int
     month: int
     models: List[str] = ["random_forest"]
+    model_cause: Optional[str] = None
+    model_rul: Optional[str] = None
 
     @field_validator("models")
     @classmethod

@@ -10,36 +10,35 @@ _MACHINES_FILE = os.path.join(os.path.dirname(__file__), 'machines.json')
 _MEDALS = ["🥇", "🥈", "🥉"]
 
 @st.cache_data(ttl=300)
-def _fetch_models() -> tuple[list[str], dict[str, str]]:
+def _fetch_models() -> tuple[list[str], dict[str, str], dict[str, list[str]]]:
+    """`models_24h`, `labels`, `groups` — groups = {group_name: [sorted model keys]}."""
+    _fallback = ["logistic_regression", "random_forest", "xgboost"]
     try:
         r = requests.get(f"{API_URL}/sujet-1/models", timeout=5)
         r.raise_for_status()
-        entries = r.json()["models"]
-        models = [e["name"] for e in entries]
-        labels = {e["name"]: e["label"] for e in entries}
-        try:
-            sr = requests.get(f"{API_URL}/sujet-1/stats", timeout=5)
-            sr.raise_for_status()
-            group = sr.json()["stats"].get("failure_24h", {})
-            models.sort(key=lambda k: group.get(k, {}).get("F1-score", 0), reverse=True)
-        except Exception:
-            pass
-        return models, labels
+        raw = r.json()["models"]                          # dict {group: [{name, label}]}
+        labels = {}
+        groups = {}
+        for gname, entries in raw.items():
+            groups[gname] = [e["name"] for e in entries]  # already sorted by API
+            for e in entries:
+                labels[e["name"]] = e["label"]
+        models_24h = groups.get("failure_24h", _fallback)
+        return models_24h, labels, groups
     except Exception:
-        fallback = ["logistic_regression", "random_forest", "xgboost"]
-        return fallback, {k: k for k in fallback}
+        return _fallback, {k: k for k in _fallback}, {}
+
 
 @st.cache_data(ttl=300)
 def _load_machines() -> list[dict]:
     with open(_MACHINES_FILE, encoding='utf-8') as f:
         return json.load(f)
 
-available_models, model_labels = _fetch_models()
+available_models, model_labels, _all_groups = _fetch_models()
 
-def _label(key: str) -> str:
-    if key is None:
-        return ""
-    idx = available_models.index(key) if key in available_models else -1
+def _label(key: str, sorted_list: list[str] | None = None) -> str:
+    lst = sorted_list if sorted_list is not None else available_models
+    idx = lst.index(key) if key in lst else -1
     medal = _MEDALS[idx] if 0 <= idx < len(_MEDALS) else ""
     base = model_labels.get(key, key.replace('_', ' ').title())
     return f"{medal} {base}".strip() if medal else base
@@ -90,8 +89,6 @@ with tab_pred:
         default=available_models[:1],
         format_func=_label,
     )
-    if not available_models:
-        st.warning("⚠️ Aucun modèle n'est disponible pour le moment. Veuillez réessayer plus tard.")
 
     st.divider()
 
@@ -162,13 +159,29 @@ with tab_dash:
     st.divider()
 
     machines = _load_machines()
-    selected_model = st.selectbox(
-        "🤖 Modèle utilisé pour l'analyse",
-        options=available_models,
-        index=0,
-        format_func=_label,
-    )
-    st.caption(f"Modèle sélectionné : **{_label(selected_model)}**")
+
+    models_cause = _all_groups.get("failure_type", available_models)
+    models_rul   = _all_groups.get("rul", available_models)
+
+    col_s1, col_s2, col_s3 = st.columns(3)
+    with col_s1:
+        selected_model = st.selectbox(
+            "🤖 Détection de panne",
+            options=available_models, index=0,
+            format_func=lambda k: _label(k, available_models),
+        )
+    with col_s2:
+        selected_cause = st.selectbox(
+            "🔎 Cause de panne",
+            options=models_cause, index=0,
+            format_func=lambda k: _label(k, models_cause),
+        )
+    with col_s3:
+        selected_rul = st.selectbox(
+            "⏱️ Durée de vie restante",
+            options=models_rul, index=0,
+            format_func=lambda k: _label(k, models_rul),
+        )
 
     if st.button("🔄 Analyser toutes les machines", use_container_width=True):
         results_all = []
@@ -188,6 +201,8 @@ with tab_dash:
                 "dayofweek":              m["dayofweek"],
                 "month":                  m["month"],
                 "models":                 [selected_model],
+                "model_cause":            selected_cause,
+                "model_rul":              selected_rul,
             }
             try:
                 r = requests.post(f"{API_URL}/sujet-1/predict", json=payload, timeout=10)
