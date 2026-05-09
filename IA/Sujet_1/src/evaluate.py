@@ -10,6 +10,32 @@ from sklearn.metrics import (
 )
 
 
+def evaluate_models_type(trained_models: dict, X_test, y_test) -> pd.DataFrame:
+    """
+    Calcule Accuracy, Precision (macro), Recall (macro), F1-macro et ROC-AUC (OvR macro)
+    pour les modèles failure_type (multi-classes : none + types de panne).
+    """
+    classes = sorted(y_test.unique())
+    rows = []
+    for name, pipe in trained_models.items():
+        y_pred = pipe.predict(X_test)
+        y_prob = pipe.predict_proba(X_test)
+        report = classification_report(
+            y_test, y_pred,
+            output_dict=True,
+            zero_division=0,
+        )
+        rows.append({
+            'Modèle':     name,
+            'Accuracy':   round(report['accuracy'], 4),
+            'Precision':  round(report['macro avg']['precision'], 4),
+            'Recall':     round(report['macro avg']['recall'], 4),
+            'F1-score':   round(report['macro avg']['f1-score'], 4),
+            'ROC-AUC':    round(roc_auc_score(y_test, y_prob, multi_class='ovr', average='macro'), 4),
+        })
+    return pd.DataFrame(rows).set_index('Modèle')
+
+
 def evaluate_models(trained_models: dict, X_test, y_test) -> pd.DataFrame:
     """
     Calcule accuracy, precision, recall, F1 et ROC-AUC pour chaque modèle.

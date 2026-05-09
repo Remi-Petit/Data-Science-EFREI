@@ -13,7 +13,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from src.preprocessing import load_data, engineer_features, get_train_test_split, get_type_train_test_split, FEATURES
 from src.train import build_pipelines, cross_validate_models, train_and_save, train_and_save_type
-from src.evaluate import evaluate_models, plot_confusion_matrices, plot_roc_curves, plot_feature_importance
+from src.evaluate import evaluate_models, evaluate_models_type, plot_confusion_matrices, plot_roc_curves, plot_feature_importance
 
 
 def main():
@@ -41,22 +41,36 @@ def main():
     # ── 3b. Modèles failure_type (cause de panne, un par algo) ───────────────
     print("\n=== Entraînement des modèles failure_type ===")
     X_train_t, X_test_t, y_train_t, y_test_t = get_type_train_test_split(df)
-    train_and_save_type(X_train_t, y_train_t, model_dir=models_dir)
+    trained_type = train_and_save_type(X_train_t, y_train_t, model_dir=models_dir)
 
-    # ── 4. Évaluation ────────────────────────────────────────────────────────
-    print("\n=== Évaluation sur le jeu de test ===")
+    # ── 4. Évaluation failure_24h ────────────────────────────────────────────
+    print("\n=== Évaluation failure_24h sur le jeu de test ===")
     results_df = evaluate_models(trained, X_test, y_test)
     print(results_df.to_string())
 
-    # ── 4b. Sauvegarde des stats par modèle ──────────────────────────────────
-    stats_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'models_stats')
+    # Sauvegarde stats failure_24h
+    stats_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'models_stats', 'failure_24h')
     os.makedirs(stats_dir, exist_ok=True)
     _name_map = {'Logistic Regression': 'logistic_regression', 'Random Forest': 'random_forest', 'XGBoost': 'xgboost'}
     for model_name, row in results_df.iterrows():
         key = _name_map.get(model_name, model_name.lower().replace(' ', '_'))
         with open(os.path.join(stats_dir, f'{key}.json'), 'w') as f:
             json.dump(row.to_dict(), f, indent=2)
-    print(f"Stats sauvegardées dans : {stats_dir}")
+    print(f"Stats failure_24h sauvegardées dans : {stats_dir}")
+
+    # ── 4b. Évaluation failure_type ─────────────────────────────────────────
+    print("\n=== Évaluation failure_type sur le jeu de test ===")
+    results_type_df = evaluate_models_type(trained_type, X_test_t, y_test_t)
+    print(results_type_df.to_string())
+
+    # Sauvegarde stats failure_type
+    stats_type_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'models_stats', 'failure_type')
+    os.makedirs(stats_type_dir, exist_ok=True)
+    for model_name, row in results_type_df.iterrows():
+        key = _name_map.get(model_name, model_name.lower().replace(' ', '_'))
+        with open(os.path.join(stats_type_dir, f'{key}.json'), 'w') as f:
+            json.dump(row.to_dict(), f, indent=2)
+    print(f"Stats failure_type sauvegardées dans : {stats_type_dir}")
 
     # ── 5. Visualisations (sauvegardées en PNG) ───────────────────────────────
     results_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'results')

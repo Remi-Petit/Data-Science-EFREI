@@ -17,15 +17,17 @@ def get_models():
 
 @router.get("/stats")
 def get_stats():
-    if not os.path.isdir(_STATS_DIR):
-        return {"stats": {}}
-    stats = {}
-    for fname in sorted(os.listdir(_STATS_DIR)):
-        if fname.endswith('.json'):
-            model_key = fname[:-5]
-            with open(os.path.join(_STATS_DIR, fname), encoding='utf-8') as f:
-                stats[model_key] = json.load(f)
-    return {"stats": stats}
+    result = {"failure_24h": {}, "failure_type": {}}
+    for task in ("failure_24h", "failure_type"):
+        task_dir = os.path.join(_STATS_DIR, task)
+        if not os.path.isdir(task_dir):
+            continue
+        for fname in sorted(os.listdir(task_dir)):
+            if fname.endswith('.json'):
+                model_key = fname[:-5]
+                with open(os.path.join(task_dir, fname), encoding='utf-8') as f:
+                    result[task][model_key] = json.load(f)
+    return {"stats": result}
 
 
 @router.post("/predict")
