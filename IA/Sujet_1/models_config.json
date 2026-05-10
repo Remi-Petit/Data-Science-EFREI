@@ -15,6 +15,10 @@
     "mlp": {
       "file": "mlp_failure_24h.joblib",
       "label": "MLP"
+    },
+    "svm": {
+      "file": "svm_failure_24h.joblib",
+      "label": "SVM"
     }
   },
   "failure_type": {
@@ -33,6 +37,10 @@
     "mlp": {
       "file": "mlp_failure_type.joblib",
       "label": "MLP"
+    },
+    "svm": {
+      "file": "svm_failure_type.joblib",
+      "label": "SVM"
     }
   },
   "rul": {
@@ -51,6 +59,10 @@
     "mlp": {
       "file": "mlp_rul.joblib",
       "label": "MLP"
+    },
+    "svm": {
+      "file": "svm_rul.joblib",
+      "label": "SVM"
     }
   }
 }

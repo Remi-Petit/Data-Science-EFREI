@@ -8,6 +8,7 @@ from sklearn.pipeline import Pipeline
 from sklearn.linear_model import LogisticRegression, Ridge
 from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 from sklearn.neural_network import MLPClassifier, MLPRegressor
+from sklearn.svm import SVC, SVR
 from sklearn.impute import SimpleImputer
 from sklearn.preprocessing import StandardScaler, LabelEncoder
 from sklearn.model_selection import cross_val_score, StratifiedKFold
@@ -19,6 +20,7 @@ MODEL_FILENAMES = {
     'Random Forest':       'random_forest_failure_24h.joblib',
     'XGBoost':             'xgboost_failure_24h.joblib',
     'MLP':                 'mlp_failure_24h.joblib',
+    'SVM':                 'svm_failure_24h.joblib',
 }
 
 MODEL_FILENAMES_TYPE = {
@@ -26,6 +28,7 @@ MODEL_FILENAMES_TYPE = {
     'Random Forest':       'random_forest_failure_type.joblib',
     'XGBoost':             'xgboost_failure_type.joblib',
     'MLP':                 'mlp_failure_type.joblib',
+    'SVM':                 'svm_failure_type.joblib',
 }
 
 
@@ -79,6 +82,14 @@ def build_pipelines() -> dict:
                 hidden_layer_sizes=(128, 64), activation='relu',
                 max_iter=500, random_state=42, early_stopping=True,
                 validation_fraction=0.1
+            ))
+        ]),
+        'SVM': Pipeline([
+            ('imputer', SimpleImputer(strategy='median')),
+            ('scaler', StandardScaler()),
+            ('clf', SVC(
+                kernel='rbf', C=1.0, class_weight='balanced',
+                random_state=42, probability=True
             ))
         ]),
     }
@@ -135,6 +146,14 @@ def build_pipelines_type() -> dict:
                 max_iter=500, random_state=42, early_stopping=False,
             ))
         ]),
+        'SVM': Pipeline([
+            ('imputer', SimpleImputer(strategy='median')),
+            ('scaler', StandardScaler()),
+            ('clf', SVC(
+                kernel='rbf', C=1.0, class_weight='balanced',
+                random_state=42, probability=True
+            ))
+        ]),
     }
 
 
@@ -158,6 +177,7 @@ MODEL_FILENAMES_RUL = {
     'Random Forest':       'random_forest_rul.joblib',
     'XGBoost':             'xgboost_rul.joblib',
     'MLP':                 'mlp_rul.joblib',
+    'SVM':                 'svm_rul.joblib',
 }
 
 
@@ -188,6 +208,11 @@ def build_pipelines_rul() -> dict:
                 max_iter=500, random_state=42, early_stopping=True,
                 validation_fraction=0.1
             ))
+        ]),
+        'SVM': Pipeline([
+            ('imputer', SimpleImputer(strategy='median')),
+            ('scaler', StandardScaler()),
+            ('reg', SVR(kernel='rbf', C=1.0))
         ]),
     }
 
