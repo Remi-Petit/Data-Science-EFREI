@@ -56,7 +56,7 @@ def main():
     # Sauvegarde stats failure_24h
     stats_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'models_stats', 'failure_24h')
     os.makedirs(stats_dir, exist_ok=True)
-    _name_map = {'Logistic Regression': 'logistic_regression', 'Random Forest': 'random_forest', 'XGBoost': 'xgboost'}
+    _name_map = {'Logistic Regression': 'logistic_regression', 'Random Forest': 'random_forest', 'XGBoost': 'xgboost', 'MLP': 'mlp'}
     for model_name, row in results_df.iterrows():
         key = _name_map.get(model_name, model_name.lower().replace(' ', '_'))
         with open(os.path.join(stats_dir, f'{key}.json'), 'w') as f:
@@ -84,7 +84,7 @@ def main():
 
     stats_rul_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'models_stats', 'rul')
     os.makedirs(stats_rul_dir, exist_ok=True)
-    _rul_name_map = {'Régression Linéaire': 'logistic_regression', 'Random Forest': 'random_forest', 'XGBoost': 'xgboost'}
+    _rul_name_map = {'Régression Linéaire': 'logistic_regression', 'Random Forest': 'random_forest', 'XGBoost': 'xgboost', 'MLP': 'mlp'}
     for model_name, row in results_rul_df.iterrows():
         key = _rul_name_map.get(model_name, model_name.lower().replace(' ', '_'))
         with open(os.path.join(stats_rul_dir, f'{key}.json'), 'w') as f:

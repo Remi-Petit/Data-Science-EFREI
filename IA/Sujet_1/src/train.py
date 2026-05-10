@@ -7,6 +7,7 @@ import pandas as pd
 from sklearn.pipeline import Pipeline
 from sklearn.linear_model import LogisticRegression, Ridge
 from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
+from sklearn.neural_network import MLPClassifier, MLPRegressor
 from sklearn.impute import SimpleImputer
 from sklearn.preprocessing import StandardScaler, LabelEncoder
 from sklearn.model_selection import cross_val_score, StratifiedKFold
@@ -17,12 +18,14 @@ MODEL_FILENAMES = {
     'Logistic Regression': 'logistic_regression_failure_24h.joblib',
     'Random Forest':       'random_forest_failure_24h.joblib',
     'XGBoost':             'xgboost_failure_24h.joblib',
+    'MLP':                 'mlp_failure_24h.joblib',
 }
 
 MODEL_FILENAMES_TYPE = {
     'Logistic Regression': 'logistic_regression_failure_type.joblib',
     'Random Forest':       'random_forest_failure_type.joblib',
     'XGBoost':             'xgboost_failure_type.joblib',
+    'MLP':                 'mlp_failure_type.joblib',
 }
 
 
@@ -67,6 +70,15 @@ def build_pipelines() -> dict:
                 n_estimators=200, learning_rate=0.1, max_depth=6,
                 scale_pos_weight=1, random_state=42, n_jobs=-1,
                 eval_metric='logloss'
+            ))
+        ]),
+        'MLP': Pipeline([
+            ('imputer', SimpleImputer(strategy='median')),
+            ('scaler', StandardScaler()),
+            ('clf', MLPClassifier(
+                hidden_layer_sizes=(128, 64), activation='relu',
+                max_iter=500, random_state=42, early_stopping=True,
+                validation_fraction=0.1
             ))
         ]),
     }
@@ -115,6 +127,14 @@ def build_pipelines_type() -> dict:
                 random_state=42, n_jobs=-1, eval_metric='mlogloss',
             ))
         ]),
+        'MLP': Pipeline([
+            ('imputer', SimpleImputer(strategy='median')),
+            ('scaler', StandardScaler()),
+            ('clf', MLPClassifier(
+                hidden_layer_sizes=(128, 64), activation='relu',
+                max_iter=500, random_state=42, early_stopping=False,
+            ))
+        ]),
     }
 
 
@@ -137,6 +157,7 @@ MODEL_FILENAMES_RUL = {
     'Régression Linéaire': 'linear_regression_rul.joblib',
     'Random Forest':       'random_forest_rul.joblib',
     'XGBoost':             'xgboost_rul.joblib',
+    'MLP':                 'mlp_rul.joblib',
 }
 
 
@@ -158,6 +179,15 @@ def build_pipelines_rul() -> dict:
                 n_estimators=200, learning_rate=0.1, max_depth=6,
                 random_state=42, n_jobs=-1, eval_metric='rmse',
             )),
+        ]),
+        'MLP': Pipeline([
+            ('imputer', SimpleImputer(strategy='median')),
+            ('scaler', StandardScaler()),
+            ('reg', MLPRegressor(
+                hidden_layer_sizes=(128, 64), activation='relu',
+                max_iter=500, random_state=42, early_stopping=True,
+                validation_fraction=0.1
+            ))
         ]),
     }
 
