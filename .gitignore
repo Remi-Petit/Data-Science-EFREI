@@ -13,6 +13,22 @@ build/
 venv/
 env/
 
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb_checkpoints
+
+# Modèles ML (volumineux)
+# *.joblib
+*.pkl
+*.h5
+
+# Données brutes (volumineux)
+*.csv
+
+# Env files (tokens, secrets)
+.env*
+!.env.example
+
 # OS
 .DS_Store
 Thumbs.db

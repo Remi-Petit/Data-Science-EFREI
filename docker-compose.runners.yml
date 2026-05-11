@@ -1,0 +1,79 @@
+# Self-hosted GitHub Actions runners (local)
+# Usage:
+#   1. Créer un .env.runners avec GITHUB_TOKEN et GITHUB_REPOSITORY
+#   2. docker compose -f docker-compose.runners.yml up -d
+#
+# Variables requises dans .env.runners :
+#   GITHUB_TOKEN=ghp_xxxxx  (Personal Access Token avec scope "repo")
+#   GITHUB_REPOSITORY=owner/repo  (ex: monuser/Data-Science)
+
+services:
+  runner-lint:
+    image: myoung34/github-runner:latest
+    container_name: runner-lint
+    restart: unless-stopped
+    environment:
+      REPO_URL: "https://github.com/${GITHUB_REPOSITORY}"
+      ACCESS_TOKEN: "${GITHUB_TOKEN}"
+      RUNNER_NAME: "local-lint"
+      RUNNER_WORKDIR: /tmp/runner/work
+      LABELS: "self-hosted,linux,local,lint"
+      RUNNER_GROUP: "default"
+      DISABLE_AUTO_UPDATE: "true"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - runner-lint-work:/tmp/runner/work
+
+  runner-build:
+    image: myoung34/github-runner:latest
+    container_name: runner-build
+    restart: unless-stopped
+    environment:
+      REPO_URL: "https://github.com/${GITHUB_REPOSITORY}"
+      ACCESS_TOKEN: "${GITHUB_TOKEN}"
+      RUNNER_NAME: "local-build"
+      RUNNER_WORKDIR: /tmp/runner/work
+      LABELS: "self-hosted,linux,local,build"
+      RUNNER_GROUP: "default"
+      DISABLE_AUTO_UPDATE: "true"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - runner-build-work:/tmp/runner/work
+
+  runner-integration:
+    image: myoung34/github-runner:latest
+    container_name: runner-integration
+    restart: unless-stopped
+    environment:
+      REPO_URL: "https://github.com/${GITHUB_REPOSITORY}"
+      ACCESS_TOKEN: "${GITHUB_TOKEN}"
+      RUNNER_NAME: "local-integration"
+      RUNNER_WORKDIR: /tmp/runner/work
+      LABELS: "self-hosted,linux,local,integration"
+      RUNNER_GROUP: "default"
+      DISABLE_AUTO_UPDATE: "true"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - runner-integration-work:/tmp/runner/work
+
+  runner-deploy:
+    image: myoung34/github-runner:latest
+    container_name: runner-deploy
+    restart: unless-stopped
+    environment:
+      REPO_URL: "https://github.com/${GITHUB_REPOSITORY}"
+      ACCESS_TOKEN: "${GITHUB_TOKEN}"
+      RUNNER_NAME: "local-deploy"
+      RUNNER_WORKDIR: /tmp/runner/work
+      LABELS: "self-hosted,nas,local,deploy"
+      RUNNER_GROUP: "default"
+      DISABLE_AUTO_UPDATE: "true"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - runner-deploy-work:/tmp/runner/work
+
+volumes:
+  runner-lint-work:
+  runner-build-work:
+  runner-integration-work:
+  runner-deploy-work:
