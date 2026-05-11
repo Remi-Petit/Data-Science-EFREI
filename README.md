@@ -1,3 +1,6 @@
+# Test | Mise en place avec des runners locaux
+docker compose --env-file .env.runners -f docker-compose.runners.yml up -d
+
 # Mise en place rapide avec Docker
 docker compose up -d --build
 
