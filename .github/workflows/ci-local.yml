@@ -23,12 +23,45 @@ jobs:
       - name: Run flake8 (syntax & logic errors only)
         run: flake8 FastAPI/ Streamlit/ IA/ --select=E9,F63,F7,F82 --show-source
 
-  build:
-    name: Build Docker images
-    runs-on: [self-hosted, local, build]
+  train:
+    name: Train ML models
+    runs-on: [self-hosted, local, lint]
     needs: lint
     steps:
       - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install training dependencies
+        run: pip install -r IA/requirements.txt
+
+      - name: Train all models
+        run: python IA/train_all.py
+
+      - name: Upload trained models
+        uses: actions/upload-artifact@v4
+        with:
+          name: trained-models
+          path: |
+            IA/Sujet_1/models/
+            IA/Sujet_2/models/
+            IA/Sujet_3/models/
+          retention-days: 1
+
+  build:
+    name: Build Docker images
+    runs-on: [self-hosted, local, build]
+    needs: train
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download trained models
+        uses: actions/download-artifact@v4
+        with:
+          name: trained-models
+          path: IA
 
       - name: Build FastAPI image
         run: docker build -f FastAPI/Dockerfile -t fastapi-app .
@@ -42,6 +75,12 @@ jobs:
     needs: build
     steps:
       - uses: actions/checkout@v4
+
+      - name: Download trained models
+        uses: actions/download-artifact@v4
+        with:
+          name: trained-models
+          path: IA
 
       - name: Start services
         run: docker compose up -d --build
@@ -85,6 +124,12 @@ jobs:
     if: github.ref == 'refs/heads/runner-local-test' && github.event_name == 'push'
     steps:
       - uses: actions/checkout@v4
+
+      - name: Download trained models
+        uses: actions/download-artifact@v4
+        with:
+          name: trained-models
+          path: IA
 
       - name: Stop existing containers
         run: docker compose -f docker-compose.yml -f docker-compose.prod.yml down || true
