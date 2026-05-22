@@ -131,6 +131,9 @@ jobs:
           name: trained-models
           path: IA
 
+      - name: Create swag_default network if needed
+        run: docker network create swag_default || true
+
       - name: Stop existing containers
         run: docker compose -f docker-compose.yml -f docker-compose.prod.yml down || true
 
