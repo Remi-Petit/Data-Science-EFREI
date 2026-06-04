@@ -1,10 +1,12 @@
 name: CI/CD
 
-on:
-  push:
-    branches: [master]
-  pull_request:
-    branches: [master]
+# C'est commenté pour ne pas déclencher le workflow Github.
+# J'utilise celui de woodpecker à la place.
+# on:
+#   push:
+#     branches: [master]
+#   pull_request:
+#     branches: [master]
 
 jobs:
   lint:
