@@ -23,3 +23,6 @@ Thumbs.db
 
 # Modèles ML (trop lourds pour GitHub, générés par la CI)
 *.joblib
+
+# Env
+.env.runners

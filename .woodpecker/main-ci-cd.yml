@@ -1,0 +1,102 @@
+when:
+  - event: push
+    branch: master
+  - event: pull_request
+    branch: master
+
+steps:
+  # ── Lint ──────────────────────────────────────────────
+  - name: lint
+    image: python:3.11-slim
+    commands:
+      - pip install flake8
+      - flake8 FastAPI/ Streamlit/ IA/ --select=E9,F63,F7,F82 --show-source
+
+  # ── Build ─────────────────────────────────────────────
+  - name: build-fastapi
+    image: docker:27
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    commands:
+      - docker build -f FastAPI/Dockerfile -t fastapi-app .
+    depends_on:
+      - lint
+
+  - name: build-streamlit
+    image: docker:27
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    commands:
+      - docker build -f Streamlit/Dockerfile -t streamlit-app .
+    depends_on:
+      - lint
+
+  # ── Integration test ──────────────────────────────────
+  - name: integration
+    image: docker:27
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    commands:
+      - apk add --no-cache curl
+      - docker compose up -d --build
+      - |
+        for i in $(seq 1 30); do
+          if curl -sf http://localhost:40001/health; then
+            echo "FastAPI is healthy"
+            break
+          fi
+          if [ "$i" = "30" ]; then
+            echo "FastAPI failed to start"
+            docker compose logs
+            exit 1
+          fi
+          echo "Waiting... ($i/30)"
+          sleep 2
+        done
+      - |
+        for i in $(seq 1 15); do
+          if curl -sf http://localhost:40000/_stcore/health; then
+            echo "Streamlit is healthy"
+            break
+          fi
+          if [ "$i" = "15" ]; then
+            echo "Streamlit failed to start"
+            docker compose logs
+            exit 1
+          fi
+          echo "Waiting... ($i/15)"
+          sleep 2
+        done
+      - docker compose down
+    depends_on:
+      - build-fastapi
+      - build-streamlit
+
+  # ── Deploy (master push uniquement) ───────────────────
+  - name: deploy
+    image: docker:27
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    commands:
+      - apk add --no-cache curl
+      - docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose.prod.yml down || true
+      - docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+      - |
+        for i in $(seq 1 30); do
+          if curl -sf http://fastapi_efrei_data_science:8000/health; then
+            echo "Deployed successfully - FastAPI is healthy"
+            break
+          fi
+          if [ "$i" = "30" ]; then
+            echo "Deployment failed"
+            docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose.prod.yml logs
+            exit 1
+          fi
+          echo "Waiting... ($i/30)"
+          sleep 2
+        done
+    when:
+      - event: push
+        branch: master
+    depends_on:
+      - integration
