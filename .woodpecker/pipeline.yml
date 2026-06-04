@@ -12,6 +12,15 @@ steps:
       - pip install flake8
       - flake8 FastAPI/ Streamlit/ IA/ --select=E9,F63,F7,F82 --show-source
 
+  # ── Train ─────────────────────────────────────────────
+  - name: train
+    image: python:3.11-slim
+    commands:
+      - pip install -r IA/requirements.txt
+      - python IA/train_all.py
+    depends_on:
+      - lint
+
   # ── Build ─────────────────────────────────────────────
   - name: build-fastapi
     image: docker:27
@@ -20,7 +29,7 @@ steps:
     commands:
       - docker build -f FastAPI/Dockerfile -t fastapi-app .
     depends_on:
-      - lint
+      - train
 
   - name: build-streamlit
     image: docker:27
@@ -29,7 +38,7 @@ steps:
     commands:
       - docker build -f Streamlit/Dockerfile -t streamlit-app .
     depends_on:
-      - lint
+      - train
 
   # ── Integration test ──────────────────────────────────
   - name: integration
@@ -77,12 +86,11 @@ steps:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     commands:
-      - apk add --no-cache curl
       - docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose.prod.yml down || true
       - docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose.prod.yml up -d --build
       - |
         for i in $(seq 1 30); do
-          if curl -sf http://fastapi_efrei_data_science:8000/health; then
+          if docker exec fastapi_efrei_data_science python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')" 2>/dev/null; then
             echo "Deployed successfully - FastAPI is healthy"
             break
           fi
