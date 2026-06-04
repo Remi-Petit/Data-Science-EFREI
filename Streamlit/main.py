@@ -26,3 +26,4 @@ except Exception:
 st.sidebar.link_button("📚 Documentation API", url="/api/docs", use_container_width=True)
 st.sidebar.markdown("")
 st.sidebar.link_button("🌐 Portfolio", url="https://remipetit.fr/data-science-ia/", use_container_width=True)
+st.sidebar.link_button("🐙 GitHub", url="https://github.com/Remi-Petit/Data-Science-EFREI", use_container_width=True)
