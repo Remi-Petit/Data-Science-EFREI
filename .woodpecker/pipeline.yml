@@ -15,9 +15,35 @@ steps:
   # ── Train ─────────────────────────────────────────────
   - name: train
     image: python:3.11-slim
+    volumes:
+      - pip-cache:/root/.cache/pip
+      - train-cache:/cache
     commands:
-      - pip install -r IA/requirements.txt
-      - python IA/train_all.py
+      - |
+        HASH=$(find IA/ -type f \
+          -not -path '*/models/*' \
+          -not -path '*/results/*' \
+          -not -path '*/models_stats/*' \
+          -not -path '*/notebook/*' \
+          -not -path '*__pycache__*' \
+          | sort | xargs md5sum | md5sum | cut -d' ' -f1)
+        echo "Source hash: $HASH"
+        if [ -f /cache/hash ] && [ "$(cat /cache/hash)" = "$HASH" ] && [ -d /cache/models ]; then
+          echo "IA/ inchangé → restauration depuis le cache"
+          cp -r /cache/models/Sujet_1 IA/Sujet_1/models
+          cp -r /cache/models/Sujet_2 IA/Sujet_2/models
+          cp -r /cache/models/Sujet_3 IA/Sujet_3/models
+        else
+          echo "IA/ modifié ou pas de cache → entraînement"
+          pip install -r IA/requirements.txt
+          python IA/train_all.py
+          rm -rf /cache/models
+          mkdir -p /cache/models
+          cp -r IA/Sujet_1/models /cache/models/Sujet_1
+          cp -r IA/Sujet_2/models /cache/models/Sujet_2
+          cp -r IA/Sujet_3/models /cache/models/Sujet_3
+          echo "$HASH" > /cache/hash
+        fi
     depends_on:
       - lint
 
