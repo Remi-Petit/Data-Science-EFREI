@@ -3,7 +3,7 @@ Une seule image : le backend Rust sert l'API (`/api`) et le frontend Svelte.
 
 docker compose up -d --build
 
-Les modèles ONNX sont chargés à la demande et déchargés après `MODEL_IDLE_SECS` secondes d'inactivité (300 par défaut) : ~3 Mo de RAM au repos.
+Aucun modèle ONNX n'est gardé en RAM : chacun est chargé pour la durée d'une requête puis libéré (~2 Mo au repos, ~45 Mo pendant une prédiction). `MODEL_IDLE_SECS=N` (N>0) les garde N secondes en cache, plus rapide mais plus gourmand.
 
 ## Éviter le problème de cache
 docker compose build --no-cache

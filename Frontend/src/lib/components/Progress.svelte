@@ -1,9 +1,11 @@
 <script lang="ts">
-	let { value, text }: { value: number; text: string } = $props();
+	let { value = 0, text, indeterminate = false }: { value?: number; text: string; indeterminate?: boolean } = $props();
 </script>
 
 <div class="progress">
-	<div class="track"><div class="fill" style="width: {value * 100}%"></div></div>
+	<div class="track">
+		<div class="fill" class:indeterminate style={indeterminate ? '' : `width: ${value * 100}%`}></div>
+	</div>
 	<div class="caption">{text}</div>
 </div>
 
@@ -20,5 +22,17 @@
 		background: var(--gradient);
 		border-radius: 999px;
 		transition: width 0.25s;
+	}
+	.fill.indeterminate {
+		width: 35%;
+		animation: slide 1.1s ease-in-out infinite;
+	}
+	@keyframes slide {
+		from {
+			transform: translateX(-100%);
+		}
+		to {
+			transform: translateX(300%);
+		}
 	}
 </style>

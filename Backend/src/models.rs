@@ -9,6 +9,18 @@ use std::{
 };
 
 static ENV: OnceLock<ort::environment::Environment> = OnceLock::new();
+static IDLE_TTL: OnceLock<Duration> = OnceLock::new();
+/// En mode sans cache, une seule session existe à la fois : la RAM reste bornée sous charge.
+static ONE_AT_A_TIME: Mutex<()> = Mutex::new(());
+
+/// Durée de conservation des sessions chargées ; 0 = déchargées dès la fin de la requête.
+pub fn set_idle_ttl(ttl: Duration) {
+    let _ = IDLE_TTL.set(ttl);
+}
+
+fn idle_ttl() -> Duration {
+    IDLE_TTL.get().copied().unwrap_or_default()
+}
 
 /// Session ONNX chargée à la demande (certains modèles pèsent plus d'1 Go en RAM une fois chargés).
 struct Loaded {
@@ -49,13 +61,23 @@ impl OnnxModel {
         &self,
         f: impl FnOnce(&mut Session) -> Result<T, ApiError>,
     ) -> Result<T, ApiError> {
+        let load = || {
+            build_session(&self.path).map_err(|e| {
+                ApiError::internal(format!("chargement de {} : {e}", self.path.display()))
+            })
+        };
+        if idle_ttl().is_zero() {
+            let _gate = ONE_AT_A_TIME.lock().map_err(ApiError::internal)?;
+            let mut session = load()?;
+            let result = f(&mut session);
+            drop(session);
+            release_freed_memory();
+            return result;
+        }
         let mut slot = self.slot.lock().map_err(ApiError::internal)?;
         if slot.is_none() {
-            let session = build_session(&self.path).map_err(|e| {
-                ApiError::internal(format!("chargement de {} : {e}", self.path.display()))
-            })?;
             *slot = Some(Loaded {
-                session,
+                session: load()?,
                 last_used: Instant::now(),
             });
         }
@@ -76,51 +98,87 @@ impl OnnxModel {
         idle
     }
 
-    fn run(&self, features: &[f32], output_idx: usize) -> Result<Vec<f32>, ApiError> {
-        let input = Tensor::from_array(([1usize, features.len()], features.to_vec()))
-            .map_err(ApiError::internal)?;
+    /// Exécute le modèle sur `rows` (une seule charge de session pour tout le lot).
+    fn run_batch<T>(
+        &self,
+        rows: &[Vec<f32>],
+        extract: impl FnOnce(&ort::session::SessionOutputs<'_>) -> Result<T, ApiError>,
+    ) -> Result<T, ApiError> {
+        let n_features = rows.first().map_or(0, Vec::len);
+        let flat: Vec<f32> = rows.iter().flatten().copied().collect();
+        let input =
+            Tensor::from_array(([rows.len(), n_features], flat)).map_err(ApiError::internal)?;
         self.with_session(|session| {
             let outputs = session
                 .run(ort::inputs!["X" => input])
                 .map_err(ApiError::internal)?;
-            let (_, data) = outputs[output_idx]
-                .try_extract_tensor::<f32>()
-                .map_err(ApiError::internal)?;
-            Ok(data.to_vec())
+            extract(&outputs)
         })
     }
 
-    /// Classifieur binaire : (classe prédite = sortie 0, probabilité de la classe 1 = sortie 1).
-    pub fn predict_binary(&self, features: &[f32]) -> Result<(i64, f64), ApiError> {
-        let input = Tensor::from_array(([1usize, features.len()], features.to_vec()))
-            .map_err(ApiError::internal)?;
-        self.with_session(|session| {
-            let outputs = session
-                .run(ort::inputs!["X" => input])
-                .map_err(ApiError::internal)?;
+    /// Classifieur binaire : par ligne, (classe prédite = sortie 0, probabilité de la classe 1 = sortie 1).
+    pub fn predict_binary_batch(&self, rows: &[Vec<f32>]) -> Result<Vec<(i64, f64)>, ApiError> {
+        if rows.is_empty() {
+            return Ok(Vec::new());
+        }
+        self.run_batch(rows, |outputs| {
             let (_, label) = outputs[0]
                 .try_extract_tensor::<i64>()
                 .map_err(ApiError::internal)?;
             let (_, proba) = outputs[1]
                 .try_extract_tensor::<f32>()
                 .map_err(ApiError::internal)?;
-            match (label.first(), proba.get(1)) {
-                (Some(l), Some(p)) => Ok((*l, f64::from(*p))),
-                _ => Err(ApiError::internal("sortie ONNX invalide")),
+            let n = rows.len();
+            if label.len() != n || proba.len() != n * 2 {
+                return Err(ApiError::internal("sortie ONNX invalide"));
             }
+            Ok((0..n)
+                .map(|i| (label[i], f64::from(proba[2 * i + 1])))
+                .collect())
         })
     }
 
-    /// Classifieur : sortie 1 = probabilités par classe.
-    pub fn predict_proba(&self, features: &[f32]) -> Result<Vec<f32>, ApiError> {
-        self.run(features, 1)
+    /// Classifieur : par ligne, probabilités de chaque classe (sortie 1).
+    pub fn predict_proba_batch(&self, rows: &[Vec<f32>]) -> Result<Vec<Vec<f32>>, ApiError> {
+        if rows.is_empty() {
+            return Ok(Vec::new());
+        }
+        self.run_batch(rows, |outputs| {
+            let (_, proba) = outputs[1]
+                .try_extract_tensor::<f32>()
+                .map_err(ApiError::internal)?;
+            let n_classes = proba.len() / rows.len();
+            Ok(proba
+                .chunks(n_classes.max(1))
+                .map(<[f32]>::to_vec)
+                .collect())
+        })
     }
 
-    /// Régresseur : sortie 0 = valeur prédite.
+    /// Régresseur : une valeur prédite par ligne (sortie 0).
+    pub fn predict_value_batch(&self, rows: &[Vec<f32>]) -> Result<Vec<f32>, ApiError> {
+        if rows.is_empty() {
+            return Ok(Vec::new());
+        }
+        self.run_batch(rows, |outputs| {
+            let (_, data) = outputs[0]
+                .try_extract_tensor::<f32>()
+                .map_err(ApiError::internal)?;
+            Ok(data.to_vec())
+        })
+    }
+
+    pub fn predict_binary(&self, features: &[f32]) -> Result<(i64, f64), ApiError> {
+        let rows = [features.to_vec()];
+        self.predict_binary_batch(&rows)?
+            .pop()
+            .ok_or_else(|| ApiError::internal("sortie ONNX vide"))
+    }
+
     pub fn predict_value(&self, features: &[f32]) -> Result<f32, ApiError> {
-        self.run(features, 0)?
-            .first()
-            .copied()
+        let rows = [features.to_vec()];
+        self.predict_value_batch(&rows)?
+            .pop()
             .ok_or_else(|| ApiError::internal("sortie ONNX vide"))
     }
 }

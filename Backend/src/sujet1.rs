@@ -42,6 +42,7 @@ pub fn router() -> Router<Arc<crate::AppState>> {
         .route("/stats", get(stats))
         .route("/cause-labels", get(cause_labels))
         .route("/predict", post(predict))
+        .route("/predict-batch", post(predict_batch))
 }
 
 async fn models(State(st): State<Arc<crate::AppState>>) -> ApiResult {
@@ -109,7 +110,7 @@ fn default_models() -> Vec<String> {
 }
 
 #[derive(Deserialize)]
-struct MachineData {
+struct Features {
     vibration_rms: f64,
     temperature_motor: f64,
     current_phase_avg: f64,
@@ -122,85 +123,165 @@ struct MachineData {
     hour: i64,
     dayofweek: i64,
     month: i64,
+}
+
+impl Features {
+    // Ordre = IA/Sujet_1/src/preprocessing.py::FEATURES
+    fn to_row(&self) -> Vec<f32> {
+        [
+            self.vibration_rms,
+            self.temperature_motor,
+            self.current_phase_avg,
+            self.pressure_level,
+            self.rpm,
+            self.hours_since_maintenance,
+            self.ambient_temp,
+            self.machine_type_enc as f64,
+            self.operating_mode_enc as f64,
+            self.hour as f64,
+            self.dayofweek as f64,
+            self.month as f64,
+        ]
+        .iter()
+        .map(|v| *v as f32)
+        .collect()
+    }
+}
+
+#[derive(Deserialize)]
+struct MachineData {
+    #[serde(flatten)]
+    features: Features,
     #[serde(default = "default_models")]
     models: Vec<String>,
     model_cause: Option<String>,
     model_rul: Option<String>,
 }
 
+#[derive(Deserialize)]
+struct BatchData {
+    machines: Vec<Features>,
+    #[serde(default = "default_model")]
+    model: String,
+    model_cause: Option<String>,
+    model_rul: Option<String>,
+}
+
+fn default_model() -> String {
+    "random_forest".into()
+}
+
+/// Prédit toutes les `rows` avec le modèle `name` : chaque modèle n'est chargé qu'une fois pour le lot.
+fn predict_rows(
+    s: &Sujet1,
+    rows: &[Vec<f32>],
+    name: &str,
+    model_cause: Option<&str>,
+    model_rul: Option<&str>,
+) -> Result<Vec<Map<String, Value>>, ApiError> {
+    let detector = s
+        .failure_24h
+        .get(name)
+        .ok_or_else(|| ApiError::internal("modèle introuvable"))?;
+    let detections = detector.predict_binary_batch(rows)?;
+
+    let mut out: Vec<Map<String, Value>> = detections
+        .iter()
+        .map(|(prediction, p1)| {
+            let mut r = Map::new();
+            r.insert("prediction".into(), json!(prediction));
+            r.insert(
+                "label".into(),
+                json!(if *prediction == 1 {
+                    "Panne probable"
+                } else {
+                    "Pas de panne"
+                }),
+            );
+            r.insert("probabilite_panne".into(), json!(round4(*p1)));
+            r
+        })
+        .collect();
+
+    let failing: Vec<usize> = detections
+        .iter()
+        .enumerate()
+        .filter(|(_, (prediction, _))| *prediction == 1)
+        .map(|(i, _)| i)
+        .collect();
+    let cause_key = model_cause.unwrap_or(name);
+    if let (false, Some(m)) = (
+        failing.is_empty(),
+        s.failure_type
+            .get(cause_key)
+            .or_else(|| s.failure_type.get(name)),
+    ) {
+        let sub: Vec<Vec<f32>> = failing.iter().map(|&i| rows[i].clone()).collect();
+        for (&i, probs) in failing.iter().zip(m.predict_proba_batch(&sub)?) {
+            let all: Vec<(&String, f64)> = m
+                .classes
+                .iter()
+                .zip(probs.iter().map(|p| round4(f64::from(*p))))
+                .collect();
+            let mut best: Option<(&String, f64)> = None;
+            for (c, p) in all.iter().filter(|(c, _)| c.as_str() != "none") {
+                if best.is_none_or(|(_, bp)| *p > bp) {
+                    best = Some((c, *p));
+                }
+            }
+            if let Some((c, _)) = best {
+                out[i].insert("cause_potentielle".into(), json!(c));
+            }
+            let map: Map<String, Value> =
+                all.iter().map(|(c, p)| ((*c).clone(), json!(p))).collect();
+            out[i].insert("probabilites_causes".into(), Value::Object(map));
+        }
+    }
+
+    let rul_key = model_rul.unwrap_or(name);
+    if let Some(m) = s.rul.get(rul_key).or_else(|| s.rul.get(name)) {
+        for (r, rul) in out.iter_mut().zip(m.predict_value_batch(rows)?) {
+            r.insert(
+                "rul_heures".into(),
+                json!((f64::from(rul).max(0.0) * 10.0).round() / 10.0),
+            );
+        }
+    }
+    Ok(out)
+}
+
 async fn predict(State(st): State<Arc<crate::AppState>>, Json(d): Json<MachineData>) -> ApiResult {
     let s = &st.s1;
     let names = validate_models(&d.models, &s.failure_24h)?;
-    let x: Vec<f32> = [
-        d.vibration_rms,
-        d.temperature_motor,
-        d.current_phase_avg,
-        d.pressure_level,
-        d.rpm,
-        d.hours_since_maintenance,
-        d.ambient_temp,
-        d.machine_type_enc as f64,
-        d.operating_mode_enc as f64,
-        d.hour as f64,
-        d.dayofweek as f64,
-        d.month as f64,
-    ]
-    .iter()
-    .map(|v| *v as f32)
-    .collect();
+    let rows = [d.features.to_row()];
 
     let mut results = Map::new();
     for name in &names {
-        let (prediction, p1) = s.failure_24h.get(name).unwrap().predict_binary(&x)?;
-        let mut r = Map::new();
-        r.insert("prediction".into(), json!(prediction));
-        r.insert(
-            "label".into(),
-            json!(if prediction == 1 {
-                "Panne probable"
-            } else {
-                "Pas de panne"
-            }),
-        );
-        r.insert("probabilite_panne".into(), json!(round4(p1)));
-
-        if prediction == 1 {
-            let cause_key = d.model_cause.as_deref().unwrap_or(name);
-            if let Some(m) = s
-                .failure_type
-                .get(cause_key)
-                .or_else(|| s.failure_type.get(name))
-            {
-                let probs = m.predict_proba(&x)?;
-                let all: Vec<(&String, f64)> = m
-                    .classes
-                    .iter()
-                    .zip(probs.iter().map(|p| round4(*p as f64)))
-                    .collect();
-                let mut best: Option<(&String, f64)> = None;
-                for (c, p) in all.iter().filter(|(c, _)| c.as_str() != "none") {
-                    if best.is_none_or(|(_, bp)| *p > bp) {
-                        best = Some((c, *p));
-                    }
-                }
-                if let Some((c, _)) = best {
-                    r.insert("cause_potentielle".into(), json!(c));
-                }
-                let map: Map<String, Value> =
-                    all.iter().map(|(c, p)| ((*c).clone(), json!(p))).collect();
-                r.insert("probabilites_causes".into(), Value::Object(map));
-            }
-        }
-
-        let rul_key = d.model_rul.as_deref().unwrap_or(name);
-        if let Some(m) = s.rul.get(rul_key).or_else(|| s.rul.get(name)) {
-            let rul = m.predict_value(&x)? as f64;
-            r.insert(
-                "rul_heures".into(),
-                json!((rul.max(0.0) * 10.0).round() / 10.0),
-            );
-        }
-        results.insert(name.clone(), Value::Object(r));
+        let mut r = predict_rows(
+            s,
+            &rows,
+            name,
+            d.model_cause.as_deref(),
+            d.model_rul.as_deref(),
+        )?;
+        results.insert(name.clone(), Value::Object(r.remove(0)));
     }
+    Ok(Json(json!({ "results": results })))
+}
+
+async fn predict_batch(
+    State(st): State<Arc<crate::AppState>>,
+    Json(d): Json<BatchData>,
+) -> ApiResult {
+    let s = &st.s1;
+    let name = validate_models(std::slice::from_ref(&d.model), &s.failure_24h)?.remove(0);
+    let rows: Vec<Vec<f32>> = d.machines.iter().map(Features::to_row).collect();
+    let results = predict_rows(
+        s,
+        &rows,
+        &name,
+        d.model_cause.as_deref(),
+        d.model_rul.as_deref(),
+    )?;
     Ok(Json(json!({ "results": results })))
 }

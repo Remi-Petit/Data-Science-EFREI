@@ -55,21 +55,25 @@ async fn main() {
         s3: sujet3::Sujet3::load(),
     });
 
-    // Les modèles inutilisés pendant MODEL_IDLE_SECS (5 min par défaut) sont déchargés de la RAM.
+    // MODEL_IDLE_SECS=0 (défaut) : aucun modèle n'est gardé en RAM, chargé puis libéré à chaque requête.
+    // >0 : les modèles restent en cache ce nombre de secondes d'inactivité (plus rapide, plus de RAM).
     let ttl = Duration::from_secs(
         std::env::var("MODEL_IDLE_SECS")
             .ok()
             .and_then(|v| v.parse().ok())
-            .unwrap_or(300),
+            .unwrap_or(0),
     );
-    let janitor = state.clone();
-    tokio::spawn(async move {
-        let mut tick = tokio::time::interval(Duration::from_secs(30));
-        loop {
-            tick.tick().await;
-            janitor.evict_idle(ttl);
-        }
-    });
+    models::set_idle_ttl(ttl);
+    if !ttl.is_zero() {
+        let janitor = state.clone();
+        tokio::spawn(async move {
+            let mut tick = tokio::time::interval(Duration::from_secs(30));
+            loop {
+                tick.tick().await;
+                janitor.evict_idle(ttl);
+            }
+        });
+    }
 
     let api = Router::new()
         .route("/", get(root))

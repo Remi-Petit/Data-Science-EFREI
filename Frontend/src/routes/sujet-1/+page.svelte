@@ -127,14 +127,16 @@
 	let dashCause = $state('random_forest');
 	let dashRul = $state('random_forest');
 	let dashResults = $state<MachineResult[] | null>(null);
-	let progress = $state<{ done: number; total: number } | null>(null);
+	let analyzing = $state(false);
+	let dashError = $state('');
 
+	// Un seul appel pour toutes les machines : chaque modèle n'est chargé qu'une fois côté serveur.
 	async function analyzeAll() {
-		const out: MachineResult[] = [];
-		progress = { done: 0, total: machines.length };
-		for (const m of machines) {
-			try {
-				const r = await apiPost<{ results: Record<string, Result> }>('/sujet-1/predict', {
+		dashError = '';
+		analyzing = true;
+		try {
+			const r = await apiPost<{ results: Result[] }>('/sujet-1/predict-batch', {
+				machines: machines.map((m) => ({
 					vibration_rms: m.vibration_rms,
 					temperature_motor: m.temperature_motor,
 					current_phase_avg: m.current_phase_avg,
@@ -146,19 +148,18 @@
 					operating_mode_enc: m.operating_mode_enc,
 					hour: m.hour,
 					dayofweek: m.dayofweek,
-					month: m.month,
-					models: [dashModel],
-					model_cause: dashCause,
-					model_rul: dashRul
-				});
-				out.push({ ...m, ...r.results[dashModel] });
-			} catch (e) {
-				out.push({ ...m, prediction: -1, probabilite_panne: 0, label: `Erreur: ${(e as Error).message}` });
-			}
-			progress = { done: out.length, total: machines.length };
+					month: m.month
+				})),
+				model: dashModel,
+				model_cause: dashCause,
+				model_rul: dashRul
+			});
+			dashResults = machines.map((m, i) => ({ ...m, ...r.results[i] }));
+		} catch (e) {
+			dashError = `Erreur de connexion à l'API : ${(e as Error).message}`;
+		} finally {
+			analyzing = false;
 		}
-		progress = null;
-		dashResults = out;
 	}
 
 	const nOk = $derived(dashResults?.filter((r) => r.prediction === 0).length ?? 0);
@@ -263,14 +264,13 @@
 				<SelectInput label="Cause de panne" bind:value={dashCause} options={opts('failure_type')} />
 				<SelectInput label="Durée de vie restante" bind:value={dashRul} options={opts('rul')} />
 			</div>
-			<button class="btn primary block gap" type="button" onclick={analyzeAll} disabled={progress !== null}>
+			<button class="btn primary block gap" type="button" onclick={analyzeAll} disabled={analyzing}>
 				<Icon name="refresh" size={18} /> Analyser toutes les machines
 			</button>
-			{#if progress}
-				<div class="gap">
-					<Progress value={progress.done / progress.total} text="Analyse en cours… {progress.done}/{progress.total}" />
-				</div>
+			{#if analyzing}
+				<div class="gap"><Progress indeterminate text="Analyse en cours…" /></div>
 			{/if}
+			{#if dashError}<div class="gap"><Alert kind="error">{dashError}</Alert></div>{/if}
 		</Card>
 
 		{#if dashResults}
