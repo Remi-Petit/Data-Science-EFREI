@@ -12,7 +12,9 @@
 	const remaining = $derived(options.filter((o) => !value.includes(o.value)));
 
 	function add(v: string) {
-		value = [...value, v];
+		// Les options sont triées du meilleur au moins bon : la sélection garde cet ordre.
+		const next = new Set([...value, v]);
+		value = options.map((o) => o.value).filter((x) => next.has(x));
 	}
 	function remove(v: string) {
 		value = value.filter((x) => x !== v);
