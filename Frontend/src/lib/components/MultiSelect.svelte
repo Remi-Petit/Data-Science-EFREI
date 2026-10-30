@@ -1,4 +1,6 @@
 <script lang="ts">
+	import Icon from './Icon.svelte';
+
 	type Option = { value: string; label: string };
 
 	let { label, value = $bindable(), options }: { label: string; value: string[]; options: Option[] } = $props();
@@ -14,6 +16,10 @@
 	}
 	function remove(v: string) {
 		value = value.filter((x) => x !== v);
+	}
+	function selectAll() {
+		value = options.map((o) => o.value);
+		open = false;
 	}
 	function onwindowclick(e: MouseEvent) {
 		if (open && root && !root.contains(e.target as Node)) open = false;
@@ -51,10 +57,32 @@
 				<span class="placeholder">Choisir des modèles…</span>
 			{/each}
 		</div>
-		<span class="chevron">⌄</span>
+		<span class="controls">
+			{#if value.length}
+				<button
+					type="button"
+					class="clear"
+					aria-label="Tout désélectionner"
+					title="Tout désélectionner"
+					onclick={(e) => {
+						e.stopPropagation();
+						value = [];
+					}}><Icon name="x" size={15} /></button
+				>
+				<span class="sep"></span>
+			{/if}
+			<span class="chevron" class:flip={open}><Icon name="chevron-down" size={18} /></span>
+		</span>
 	</div>
 	{#if open}
 		<ul id="ms-list" class="list" role="listbox">
+			{#if remaining.length > 1}
+				<li>
+					<button type="button" role="option" aria-selected="false" class="all" onclick={selectAll}
+						>Tous les modèles</button
+					>
+				</li>
+			{/if}
 			{#each remaining as o (o.value)}
 				<li>
 					<button
@@ -139,7 +167,42 @@
 		color: var(--text-muted);
 	}
 	.chevron {
+		display: grid;
+		place-items: center;
 		color: var(--text-muted);
+		transition: transform 0.2s, color 0.15s;
+	}
+	.chevron.flip {
+		transform: rotate(180deg);
+		color: var(--primary);
+	}
+	.controls {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		flex: none;
+		align-self: center;
+	}
+	.clear {
+		display: grid;
+		place-items: center;
+		width: 1.6rem;
+		height: 1.6rem;
+		border: none;
+		border-radius: 50%;
+		background: transparent;
+		color: var(--text-muted);
+		cursor: pointer;
+		transition: background 0.15s, color 0.15s;
+	}
+	.clear:hover {
+		background: var(--error-bg);
+		color: var(--error);
+	}
+	.sep {
+		width: 1px;
+		height: 1.2rem;
+		background: var(--border);
 	}
 	.list {
 		position: absolute;
@@ -166,6 +229,14 @@
 	.list button:hover {
 		background: var(--primary-soft);
 		color: var(--primary);
+	}
+	.list .all {
+		margin-bottom: 0.25rem;
+		padding-bottom: 0.6rem;
+		border-bottom: 1px solid var(--border);
+		border-radius: 0.5rem 0.5rem 0 0;
+		color: var(--primary);
+		font-weight: 650;
 	}
 	.empty {
 		padding: 0.5rem 0.7rem;
