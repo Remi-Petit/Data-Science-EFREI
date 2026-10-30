@@ -5,29 +5,30 @@ docker compose up -d --build
 docker compose build --no-cache
 
 ## Les URLS
-Streamlit : http://localhost:40000
+Frontend : http://localhost:40000
 API : http://localhost:40001
-Doc : http://localhost:40001/docs
 
 # Mise en place en local
 Il faut un env virtuel python de préférence
 
-## Préparation du Backend FastAPI
-pip install -r FastAPI/requirements.txt
-fastapi dev main.py
+## Préparation du Backend Rust (Axum + ONNX Runtime)
+Le backend ne lit que les `.onnx` (voir « Préparation des modèles d'IA » ci-dessous).
 
-## Préparation du Frontend Streamlit
-pip install -r Streamlit/requirements.txt
-streamlit run main.py
+cd Backend && cargo run --release
 
-## Prepération des modèles d'IA
+## Préparation du Frontend Svelte
+cd Frontend && npm install && npm run dev
+
+Le serveur de dev proxifie `/api` vers `http://localhost:8000` (variable `API_TARGET`).
+
+## Prépération des modèles d'IA
 pip install -r IA/requirements.txt
 python IA/train_all.py
+python IA/export_onnx.py
 
 ## Les URLS
-Streamlit : http://localhost:8501
+Frontend : http://localhost:5173
 API : http://localhost:8000
-Doc : http://localhost:8000/docs
 
 # Code2Prompt
 Un outil qui permet de combiner le code des différents fichiers du projet en un fichier markdown, facilement compréhensible par les LLM.

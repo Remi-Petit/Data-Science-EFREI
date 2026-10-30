@@ -10,7 +10,7 @@ steps:
     image: python:3.11-slim
     commands:
       - pip install flake8
-      - flake8 FastAPI/ Streamlit/ IA/ --select=E9,F63,F7,F82 --show-source
+      - flake8 IA/ --select=E9,F63,F7,F82 --show-source
 
   # ── Train ─────────────────────────────────────────────
   - name: train
@@ -37,6 +37,7 @@ steps:
           echo "IA/ modifié ou pas de cache → entraînement"
           pip install -r IA/requirements.txt
           python IA/train_all.py
+          python IA/export_onnx.py
           rm -rf /cache/models
           mkdir -p /cache/models
           cp -r IA/Sujet_1/models /cache/models/Sujet_1
@@ -48,21 +49,21 @@ steps:
       - lint
 
   # ── Build ─────────────────────────────────────────────
-  - name: build-fastapi
+  - name: build-backend
     image: docker:27
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     commands:
-      - docker build -f FastAPI/Dockerfile -t fastapi-app .
+      - docker build -f Backend/Dockerfile -t backend-app .
     depends_on:
       - train
 
-  - name: build-streamlit
+  - name: build-frontend
     image: docker:27
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     commands:
-      - docker build -f Streamlit/Dockerfile -t streamlit-app .
+      - docker build -f Frontend/Dockerfile -t frontend-app .
     depends_on:
       - train
 
@@ -75,7 +76,7 @@ steps:
       - docker compose up -d --build
       - |
         for i in $(seq 1 30); do
-          if docker exec fastapi_efrei_data_science python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')" 2>/dev/null; then
+          if docker exec fastapi_efrei_data_science curl -sf http://localhost:8000/health 2>/dev/null; then
             echo "FastAPI is healthy"
             break
           fi
@@ -89,12 +90,12 @@ steps:
         done
       - |
         for i in $(seq 1 15); do
-          if docker exec streamlit_efrei_data_science python -c "import urllib.request; urllib.request.urlopen('http://localhost:8501/_stcore/health')" 2>/dev/null; then
-            echo "Streamlit is healthy"
+          if docker exec streamlit_efrei_data_science wget -q -O /dev/null http://localhost/ 2>/dev/null; then
+            echo "Frontend is healthy"
             break
           fi
           if [ "$i" = "15" ]; then
-            echo "Streamlit failed to start"
+            echo "Frontend failed to start"
             docker compose logs
             exit 1
           fi
@@ -103,8 +104,8 @@ steps:
         done
       - docker compose down
     depends_on:
-      - build-fastapi
-      - build-streamlit
+      - build-backend
+      - build-frontend
 
   # ── Deploy (master push uniquement) ───────────────────
   - name: deploy
@@ -116,7 +117,7 @@ steps:
       - docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose.prod.yml up -d --build
       - |
         for i in $(seq 1 30); do
-          if docker exec fastapi_efrei_data_science python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')" 2>/dev/null; then
+          if docker exec fastapi_efrei_data_science curl -sf http://localhost:8000/health 2>/dev/null; then
             echo "Deployed successfully - FastAPI is healthy"
             break
           fi

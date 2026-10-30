@@ -3,3 +3,6 @@ pandas==3.0.2
 scikit-learn==1.8.0
 xgboost==3.2.0
 joblib==1.5.3
+skl2onnx==1.20.0
+onnxmltools==1.16.0
+onnxruntime==1.31.1

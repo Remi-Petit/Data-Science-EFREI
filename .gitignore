@@ -23,6 +23,11 @@ Thumbs.db
 
 # Modèles ML (trop lourds pour GitHub, générés par la CI)
 *.joblib
+*.onnx
+*.classes.json
+
+# Backend Rust
+Backend/target/
 
 # Env
 .env.runners
