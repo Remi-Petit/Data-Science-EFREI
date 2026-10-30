@@ -1,62 +1,114 @@
 use crate::error::ApiError;
-use ort::{session::Session, value::Tensor};
+use ort::{ep, session::Session, value::Tensor};
 use serde_json::{Map, Value};
 use std::{
     env, fs,
     path::{Path, PathBuf},
     sync::{Mutex, OnceLock},
+    time::{Duration, Instant},
 };
 
 static ENV: OnceLock<ort::environment::Environment> = OnceLock::new();
 
+/// Session ONNX chargée à la demande (certains modèles pèsent plus d'1 Go en RAM une fois chargés).
+struct Loaded {
+    session: Session,
+    last_used: Instant,
+}
+
 pub struct OnnxModel {
-    session: Mutex<Session>,
+    path: PathBuf,
+    slot: Mutex<Option<Loaded>>,
     pub classes: Vec<String>,
 }
 
+fn build_session(path: &Path) -> Result<Session, String> {
+    let env = ENV.get_or_init(|| ort::init().build().expect("init ONNX Runtime"));
+    let err = |e: &dyn std::fmt::Display| e.to_string();
+    // Un thread, pas d'arène ni de pattern mémoire : une inférence = une seule ligne.
+    let builder = Session::builder(env).map_err(|e| err(&e))?;
+    let builder = builder.with_intra_threads(1).map_err(|e| err(&e))?;
+    let builder = builder.with_inter_threads(1).map_err(|e| err(&e))?;
+    let builder = builder.with_memory_pattern(false).map_err(|e| err(&e))?;
+    let mut builder = builder
+        .with_execution_providers([ep::CPU::default().with_arena_allocator(false).build()])
+        .map_err(|e| err(&e))?;
+    builder.commit_from_file(path).map_err(|e| err(&e))
+}
+
 impl OnnxModel {
-    fn load(path: &Path, classes: Vec<String>) -> Result<Self, String> {
-        let env = ENV.get_or_init(|| ort::init().build().expect("init ONNX Runtime"));
-        let session = Session::builder(env)
-            .and_then(|mut b| b.commit_from_file(path))
-            .map_err(|e| e.to_string())?;
-        Ok(Self {
-            session: Mutex::new(session),
+    fn new(path: PathBuf, classes: Vec<String>) -> Self {
+        Self {
+            path,
+            slot: Mutex::new(None),
             classes,
-        })
+        }
+    }
+
+    fn with_session<T>(
+        &self,
+        f: impl FnOnce(&mut Session) -> Result<T, ApiError>,
+    ) -> Result<T, ApiError> {
+        let mut slot = self.slot.lock().map_err(ApiError::internal)?;
+        if slot.is_none() {
+            let session = build_session(&self.path).map_err(|e| {
+                ApiError::internal(format!("chargement de {} : {e}", self.path.display()))
+            })?;
+            *slot = Some(Loaded {
+                session,
+                last_used: Instant::now(),
+            });
+        }
+        let loaded = slot.as_mut().expect("session chargée");
+        loaded.last_used = Instant::now();
+        f(&mut loaded.session)
+    }
+
+    /// Libère la session si elle n'a pas servi depuis `ttl`.
+    fn evict_if_idle(&self, ttl: Duration) -> bool {
+        let Ok(mut slot) = self.slot.lock() else {
+            return false;
+        };
+        let idle = slot.as_ref().is_some_and(|l| l.last_used.elapsed() >= ttl);
+        if idle {
+            *slot = None;
+        }
+        idle
     }
 
     fn run(&self, features: &[f32], output_idx: usize) -> Result<Vec<f32>, ApiError> {
         let input = Tensor::from_array(([1usize, features.len()], features.to_vec()))
             .map_err(ApiError::internal)?;
-        let mut session = self.session.lock().map_err(ApiError::internal)?;
-        let outputs = session
-            .run(ort::inputs!["X" => input])
-            .map_err(ApiError::internal)?;
-        let (_, data) = outputs[output_idx]
-            .try_extract_tensor::<f32>()
-            .map_err(ApiError::internal)?;
-        Ok(data.to_vec())
+        self.with_session(|session| {
+            let outputs = session
+                .run(ort::inputs!["X" => input])
+                .map_err(ApiError::internal)?;
+            let (_, data) = outputs[output_idx]
+                .try_extract_tensor::<f32>()
+                .map_err(ApiError::internal)?;
+            Ok(data.to_vec())
+        })
     }
 
     /// Classifieur binaire : (classe prédite = sortie 0, probabilité de la classe 1 = sortie 1).
     pub fn predict_binary(&self, features: &[f32]) -> Result<(i64, f64), ApiError> {
         let input = Tensor::from_array(([1usize, features.len()], features.to_vec()))
             .map_err(ApiError::internal)?;
-        let mut session = self.session.lock().map_err(ApiError::internal)?;
-        let outputs = session
-            .run(ort::inputs!["X" => input])
-            .map_err(ApiError::internal)?;
-        let (_, label) = outputs[0]
-            .try_extract_tensor::<i64>()
-            .map_err(ApiError::internal)?;
-        let (_, proba) = outputs[1]
-            .try_extract_tensor::<f32>()
-            .map_err(ApiError::internal)?;
-        match (label.first(), proba.get(1)) {
-            (Some(l), Some(p)) => Ok((*l, f64::from(*p))),
-            _ => Err(ApiError::internal("sortie ONNX invalide")),
-        }
+        self.with_session(|session| {
+            let outputs = session
+                .run(ort::inputs!["X" => input])
+                .map_err(ApiError::internal)?;
+            let (_, label) = outputs[0]
+                .try_extract_tensor::<i64>()
+                .map_err(ApiError::internal)?;
+            let (_, proba) = outputs[1]
+                .try_extract_tensor::<f32>()
+                .map_err(ApiError::internal)?;
+            match (label.first(), proba.get(1)) {
+                (Some(l), Some(p)) => Ok((*l, f64::from(*p))),
+                _ => Err(ApiError::internal("sortie ONNX invalide")),
+            }
+        })
     }
 
     /// Classifieur : sortie 1 = probabilités par classe.
@@ -83,6 +135,25 @@ impl ModelGroup {
 
     pub fn keys(&self) -> Vec<String> {
         self.0.iter().map(|(k, _)| k.clone()).collect()
+    }
+
+    /// Décharge les sessions inactives ; renvoie le nombre de modèles libérés.
+    pub fn evict_idle(&self, ttl: Duration) -> usize {
+        self.0.iter().filter(|(_, m)| m.evict_if_idle(ttl)).count()
+    }
+}
+
+/// Rend au système la mémoire libérée par les modèles déchargés (glibc la garde sinon).
+pub fn release_freed_memory() {
+    #[cfg(all(target_os = "linux", target_env = "gnu"))]
+    {
+        extern "C" {
+            fn malloc_trim(pad: usize) -> i32;
+        }
+        // SAFETY: malloc_trim n'a aucune précondition.
+        unsafe {
+            malloc_trim(0);
+        }
     }
 }
 
@@ -127,10 +198,7 @@ pub fn load_group(models_dir: &Path, group: Option<&Value>) -> ModelGroup {
             .ok()
             .and_then(|s| serde_json::from_str::<Vec<String>>(&s).ok())
             .unwrap_or_default();
-        match OnnxModel::load(&path, classes) {
-            Ok(m) => models.push((key.clone(), m)),
-            Err(e) => eprintln!("[models] Chargement impossible {} : {e}", path.display()),
-        }
+        models.push((key.clone(), OnnxModel::new(path, classes)));
     }
     ModelGroup(models)
 }

@@ -6,7 +6,7 @@ mod sujet3;
 
 use axum::{extract::State, routing::get, Json, Router};
 use serde_json::{json, Value};
-use std::sync::Arc;
+use std::{sync::Arc, time::Duration};
 use tower_http::{
     compression::CompressionLayer,
     services::{ServeDir, ServeFile},
@@ -16,6 +16,19 @@ pub struct AppState {
     pub s1: sujet1::Sujet1,
     pub s2: sujet2::Sujet2,
     pub s3: sujet3::Sujet3,
+}
+
+impl AppState {
+    fn evict_idle(&self, ttl: Duration) {
+        let freed = self.s1.failure_24h.evict_idle(ttl)
+            + self.s1.failure_type.evict_idle(ttl)
+            + self.s1.rul.evict_idle(ttl)
+            + self.s2.churn.evict_idle(ttl)
+            + self.s3.regression.evict_idle(ttl);
+        if freed > 0 {
+            models::release_freed_memory();
+        }
+    }
 }
 
 async fn root() -> Json<Value> {
@@ -40,6 +53,22 @@ async fn main() {
         s1: sujet1::Sujet1::load(),
         s2: sujet2::Sujet2::load(),
         s3: sujet3::Sujet3::load(),
+    });
+
+    // Les modèles inutilisés pendant MODEL_IDLE_SECS (5 min par défaut) sont déchargés de la RAM.
+    let ttl = Duration::from_secs(
+        std::env::var("MODEL_IDLE_SECS")
+            .ok()
+            .and_then(|v| v.parse().ok())
+            .unwrap_or(300),
+    );
+    let janitor = state.clone();
+    tokio::spawn(async move {
+        let mut tick = tokio::time::interval(Duration::from_secs(30));
+        loop {
+            tick.tick().await;
+            janitor.evict_idle(ttl);
+        }
     });
 
     let api = Router::new()
