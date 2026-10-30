@@ -137,7 +137,7 @@ jobs:
         run: |
           sha256sum backend-linux-x86_64.tar.gz frontend-build.tar.gz models-onnx.tar.gz > SHA256SUMS
           cat > notes.md <<EOF
-          Pré-version du backend Rust (Axum + ONNX Runtime) et du frontend Svelte.
+          Version du backend Rust (Axum + ONNX Runtime) et du frontend Svelte.
 
           Images Docker :
           - \`${BASE}-backend:${TAG}\` (modèles ONNX inclus)
@@ -148,7 +148,7 @@ jobs:
           if gh release view "$TAG" >/dev/null 2>&1; then
             gh release upload "$TAG" backend-linux-x86_64.tar.gz frontend-build.tar.gz models-onnx.tar.gz SHA256SUMS --clobber
           else
-            gh release create "$TAG" --target "$GITHUB_SHA" --title "$TAG" --prerelease \
+            gh release create "$TAG" --target "$GITHUB_SHA" --title "$TAG" --latest \
               --notes-file notes.md \
               backend-linux-x86_64.tar.gz frontend-build.tar.gz models-onnx.tar.gz SHA256SUMS
           fi
