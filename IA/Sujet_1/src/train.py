@@ -191,7 +191,9 @@ def build_pipelines_rul() -> dict:
         ]),
         'Random Forest': Pipeline([
             ('imputer', SimpleImputer(strategy='median')),
-            ('reg', RandomForestRegressor(n_estimators=200, random_state=42, n_jobs=-1)),
+            ('reg', RandomForestRegressor(
+                n_estimators=200, min_samples_leaf=3, random_state=42, n_jobs=-1
+            )),
         ]),
         'XGBoost': Pipeline([
             ('imputer', SimpleImputer(strategy='median')),
