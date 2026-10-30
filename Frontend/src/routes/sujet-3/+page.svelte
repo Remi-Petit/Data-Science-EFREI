@@ -3,19 +3,19 @@
 	import { apiGet, apiPost, modelLabel, type ModelEntry, type Stats } from '$lib/api';
 	import Alert from '$lib/components/Alert.svelte';
 	import BarChart from '$lib/components/BarChart.svelte';
+	import Card from '$lib/components/Card.svelte';
 	import DataTable from '$lib/components/DataTable.svelte';
+	import Icon from '$lib/components/Icon.svelte';
 	import Metric from '$lib/components/Metric.svelte';
 	import MultiSelect from '$lib/components/MultiSelect.svelte';
 	import NumberInput from '$lib/components/NumberInput.svelte';
+	import PageHeader from '$lib/components/PageHeader.svelte';
 	import SelectInput from '$lib/components/SelectInput.svelte';
 
-	type Result = { sales_prediction: number; performance: 'Low' | 'Medium' | 'High'; roi_estimate: number | null };
+	type Perf = 'Low' | 'Medium' | 'High';
+	type Result = { sales_prediction: number; performance: Perf; roi_estimate: number | null };
 
-	const PERF = {
-		Low: { icon: '🔴', kind: 'error' },
-		Medium: { icon: '🟡', kind: 'warning' },
-		High: { icon: '🟢', kind: 'success' }
-	} as const;
+	const PERF = { Low: 'error', Medium: 'warning', High: 'success' } as const;
 
 	const FALLBACK = ['linear_regression', 'random_forest', 'xgboost', 'mlp'];
 	let available = $state<string[]>(FALLBACK);
@@ -86,89 +86,95 @@
 	}
 </script>
 
-<h1>📈 Optimisation du ROI Marketing</h1>
-<p>Simulez l'impact d'un mix média sur les ventes et estimez le ROI de votre campagne en temps réel.</p>
-<hr />
+<PageHeader
+	icon="trending-up"
+	title="Optimisation du ROI Marketing"
+	subtitle="Simulez l'impact d'un mix média sur les ventes et estimez le ROI de votre campagne."
+/>
 
-<h2>💰 Budget média</h2>
-<div class="grid cols-4">
-	<NumberInput label="Budget TV (M€)" bind:value={tv} min={0} decimals={2} />
-	<NumberInput label="Budget Radio (M€)" bind:value={radio} min={0} step={0.5} decimals={2} />
-	<NumberInput label="Budget Social Media (M€)" bind:value={social_media} min={0} step={0.1} decimals={2} />
-	<SelectInput
-		label="Type d'influenceur"
-		bind:value={influencer}
-		options={['Macro', 'Mega', 'Micro', 'Nano'].map((v) => ({ value: v, label: v }))}
-	/>
-</div>
+<div class="stack">
+	<Card title="Budget média" icon="coins">
+		<div class="grid cols-4">
+			<NumberInput label="Budget TV (M€)" bind:value={tv} min={0} decimals={2} />
+			<NumberInput label="Budget Radio (M€)" bind:value={radio} min={0} step={0.5} decimals={2} />
+			<NumberInput label="Budget Social Media (M€)" bind:value={social_media} min={0} step={0.1} decimals={2} />
+			<SelectInput
+				label="Type d'influenceur"
+				bind:value={influencer}
+				options={['Macro', 'Mega', 'Micro', 'Nano'].map((v) => ({ value: v, label: v }))}
+			/>
+		</div>
+	</Card>
 
-<hr />
-<h2>📊 Indicateurs du scénario</h2>
-<div class="grid cols-4">
-	<Metric label="Budget total" value="{total.toFixed(1)} M€" />
-	<Metric label="Part TV" value={share(tv)} />
-	<Metric label="Part Radio" value={share(radio)} />
-	<Metric label="Part Social Media" value={share(social_media)} />
-</div>
-
-{#if total > 0}
-	<BarChart
-		bars={[
-			{ label: 'TV', value: tv },
-			{ label: 'Radio', value: radio },
-			{ label: 'Social Media', value: social_media }
-		]}
-		format={(v) => v.toFixed(1)}
-	/>
-{/if}
-
-<hr />
-<MultiSelect label="🤖 Modèles à comparer" bind:value={selected} options={opts} />
-{#if !available.length}
-	<Alert kind="warning">⚠️ Aucun modèle n'est disponible pour le moment. Veuillez réessayer plus tard.</Alert>
-{/if}
-<hr />
-
-<button class="btn block" type="button" onclick={predict} disabled={loading}>
-	{loading ? 'Analyse…' : '🔍 Lancer la prédiction'}
-</button>
-
-{#if warning}<div class="gap"><Alert kind="warning">{warning}</Alert></div>{/if}
-{#if error}<div class="gap"><Alert kind="error">{error}</Alert></div>{/if}
-
-{#if results}
-	<hr />
-	<h2>📊 Résultats par modèle</h2>
-	<div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr))">
-		{#each Object.entries(results) as [key, res] (key)}
-			<div>
-				<h3>{lbl(key)}</h3>
-				<Metric label="Ventes prédites" value="{res.sales_prediction.toFixed(2)} M€" />
-				<Metric label="ROI estimé" value={res.roi_estimate !== null ? `${res.roi_estimate.toFixed(2)}x` : '–'} />
-				<Alert kind={PERF[res.performance].kind}>
-					{PERF[res.performance].icon} Performance : <strong>{res.performance}</strong>
-				</Alert>
+	<Card title="Indicateurs du scénario" icon="bar-chart">
+		<div class="grid cols-4">
+			<Metric label="Budget total" value="{total.toFixed(1)} M€" />
+			<Metric label="Part TV" value={share(tv)} />
+			<Metric label="Part Radio" value={share(radio)} />
+			<Metric label="Part Social Media" value={share(social_media)} />
+		</div>
+		{#if total > 0}
+			<div class="gap">
+				<BarChart
+					bars={[
+						{ label: 'TV', value: tv },
+						{ label: 'Radio', value: radio },
+						{ label: 'Social Media', value: social_media }
+					]}
+					format={(v) => `${v.toFixed(1)} M€`}
+				/>
 			</div>
-		{/each}
-	</div>
+		{/if}
+	</Card>
 
-	{#if Object.keys(results).length > 1}
-		<hr />
-		<h2>📋 Tableau comparatif</h2>
-		<DataTable
-			columns={['Modèle', 'Ventes prédites (M€)', 'ROI estimé', 'Performance']}
-			rows={Object.entries(results).map(([k, v]) => [
-				lbl(k),
-				v.sales_prediction.toFixed(2),
-				v.roi_estimate !== null ? v.roi_estimate.toFixed(2) : null,
-				v.performance
-			])}
-		/>
+	<Card title="Modèles à comparer" icon="layers">
+		<MultiSelect label="Modèles de régression" bind:value={selected} options={opts} />
+		{#if !available.length}
+			<div class="gap">
+				<Alert kind="warning">Aucun modèle n'est disponible pour le moment. Veuillez réessayer plus tard.</Alert>
+			</div>
+		{/if}
+		<button class="btn primary block gap" type="button" onclick={predict} disabled={loading}>
+			<Icon name="zap" size={18} />
+			{loading ? 'Analyse en cours…' : 'Lancer la prédiction'}
+		</button>
+		{#if warning}<div class="gap"><Alert kind="warning">{warning}</Alert></div>{/if}
+		{#if error}<div class="gap"><Alert kind="error">{error}</Alert></div>{/if}
+	</Card>
+
+	{#if results}
+		<h2>Résultats par modèle</h2>
+		<div class="grid auto-fit">
+			{#each Object.entries(results) as [key, res] (key)}
+				<Card tone={PERF[res.performance]}>
+					<div class="stack tight">
+						<h3>{lbl(key)}</h3>
+						<Metric label="Ventes prédites" value="{res.sales_prediction.toFixed(2)} M€" />
+						<Metric label="ROI estimé" value={res.roi_estimate !== null ? `${res.roi_estimate.toFixed(2)}x` : '–'} />
+						<Alert kind={PERF[res.performance]}>Performance : <strong>{res.performance}</strong></Alert>
+					</div>
+				</Card>
+			{/each}
+		</div>
+
+		{#if Object.keys(results).length > 1}
+			<Card title="Tableau comparatif" icon="layers">
+				<DataTable
+					columns={['Modèle', 'Ventes prédites (M€)', 'ROI estimé', 'Performance']}
+					rows={Object.entries(results).map(([k, v]) => [
+						lbl(k),
+						v.sales_prediction.toFixed(2),
+						v.roi_estimate !== null ? v.roi_estimate.toFixed(2) : null,
+						v.performance
+					])}
+				/>
+			</Card>
+		{/if}
 	{/if}
-{/if}
+</div>
 
 <style>
-	.gap {
-		margin-top: 1rem;
+	.tight {
+		gap: 0.9rem;
 	}
 </style>

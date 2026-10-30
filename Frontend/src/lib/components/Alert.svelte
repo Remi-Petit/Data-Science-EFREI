@@ -1,31 +1,46 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
+	import Icon from './Icon.svelte';
 
 	let { kind, children }: { kind: 'success' | 'error' | 'warning' | 'info'; children: Snippet } = $props();
+
+	const icon = { success: 'check', error: 'alert', warning: 'alert', info: 'info' } as const;
 </script>
 
-<div class="alert {kind}" role="alert">{@render children()}</div>
+<div class="alert {kind}" role="alert">
+	<Icon name={icon[kind]} size={18} />
+	<div>{@render children()}</div>
+</div>
 
 <style>
 	.alert {
-		padding: 1rem;
+		display: flex;
+		align-items: flex-start;
+		gap: 0.65rem;
+		padding: 0.8rem 1rem;
 		border-radius: var(--radius);
-		margin-bottom: 1rem;
+		border: 1px solid color-mix(in srgb, var(--c) 30%, transparent);
+		background: var(--bg-c);
+		color: var(--c);
+		font-weight: 500;
+	}
+	.alert :global(svg) {
+		margin-top: 0.2rem;
 	}
 	.success {
-		background: var(--success-bg);
-		color: var(--success-fg);
+		--c: var(--success);
+		--bg-c: var(--success-bg);
 	}
 	.error {
-		background: var(--error-bg);
-		color: var(--error-fg);
+		--c: var(--error);
+		--bg-c: var(--error-bg);
 	}
 	.warning {
-		background: var(--warning-bg);
-		color: var(--warning-fg);
+		--c: var(--warning);
+		--bg-c: var(--warning-bg);
 	}
 	.info {
-		background: var(--info-bg);
-		color: var(--info-fg);
+		--c: var(--info);
+		--bg-c: var(--info-bg);
 	}
 </style>

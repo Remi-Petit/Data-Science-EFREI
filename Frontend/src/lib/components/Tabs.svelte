@@ -16,28 +16,33 @@
 
 <style>
 	.tabs {
-		display: flex;
-		gap: 1rem;
+		display: inline-flex;
+		max-width: 100%;
+		gap: 0.25rem;
+		padding: 0.3rem;
+		margin-bottom: 1.5rem;
 		overflow-x: auto;
 		scrollbar-width: none;
-		border-bottom: 1px solid var(--border);
-		margin-bottom: 1.5rem;
+		background: var(--bg-secondary);
+		border-radius: var(--radius);
 	}
 	button {
-		padding: 0.5rem 0.25rem;
-		margin-bottom: -1px;
+		padding: 0.45rem 1rem;
 		border: none;
-		border-bottom: 2px solid transparent;
+		border-radius: 0.55rem;
 		background: transparent;
 		color: var(--text-muted);
-		cursor: pointer;
+		font-weight: 600;
 		white-space: nowrap;
+		cursor: pointer;
+		transition: background 0.15s, color 0.15s, box-shadow 0.15s;
 	}
 	button:hover {
-		color: var(--primary);
+		color: var(--text);
 	}
 	button.active {
+		background: var(--surface);
 		color: var(--primary);
-		border-bottom-color: var(--primary);
+		box-shadow: var(--shadow);
 	}
 </style>

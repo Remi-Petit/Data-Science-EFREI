@@ -8,18 +8,17 @@
 </div>
 
 <style>
-	.progress {
-		margin-bottom: 1rem;
-	}
 	.track {
 		height: 0.5rem;
-		background: rgba(151, 166, 195, 0.25);
-		border-radius: 0.25rem;
+		margin-bottom: 0.4rem;
+		background: var(--bg-secondary);
+		border-radius: 999px;
 		overflow: hidden;
 	}
 	.fill {
 		height: 100%;
-		background: var(--primary);
-		transition: width 0.2s;
+		background: var(--gradient);
+		border-radius: 999px;
+		transition: width 0.25s;
 	}
 </style>

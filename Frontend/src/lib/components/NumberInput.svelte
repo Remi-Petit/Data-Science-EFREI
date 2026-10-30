@@ -35,12 +35,14 @@
 <style>
 	.field {
 		display: block;
-		margin-bottom: 1rem;
+		min-width: 0;
 	}
 	.label {
 		display: block;
-		font-size: 0.875rem;
-		margin-bottom: 0.25rem;
+		font-size: 0.82rem;
+		font-weight: 550;
+		color: var(--text-muted);
+		margin-bottom: 0.35rem;
 	}
 	.box {
 		display: flex;
@@ -49,16 +51,18 @@
 		border: 1px solid transparent;
 		border-radius: var(--radius);
 		overflow: hidden;
+		transition: border-color 0.15s, box-shadow 0.15s;
 	}
 	.box:focus-within {
 		border-color: var(--primary);
+		box-shadow: 0 0 0 3px var(--primary-soft);
 	}
 	input {
 		flex: 1;
 		min-width: 0;
 		border: none;
 		background: transparent;
-		padding: 0.5rem 0.75rem;
+		padding: 0.55rem 0.8rem;
 		outline: none;
 		appearance: textfield;
 		-moz-appearance: textfield;
@@ -69,15 +73,16 @@
 		margin: 0;
 	}
 	button {
-		width: 2rem;
+		width: 2.1rem;
 		border: none;
 		border-left: 1px solid var(--border);
 		background: transparent;
+		color: var(--text-muted);
 		cursor: pointer;
 		font-size: 1.1rem;
 	}
 	button:hover {
 		color: var(--primary);
-		background: rgba(49, 51, 63, 0.06);
+		background: var(--primary-soft);
 	}
 </style>

@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import { apiGet, type ModelEntry, type Stats } from '$lib/api';
 	import Alert from '$lib/components/Alert.svelte';
+	import PageHeader from '$lib/components/PageHeader.svelte';
 	import StatsGroup from '$lib/components/StatsGroup.svelte';
 	import Tabs from '$lib/components/Tabs.svelte';
 
@@ -45,11 +46,13 @@
 	});
 </script>
 
-<h1>📊 Comparaison des modèles</h1>
-<p>Classement des modèles entraînés pour chaque sujet, du meilleur au moins performant.</p>
-<hr />
+<PageHeader
+	icon="bar-chart"
+	title="Comparaison des modèles"
+	subtitle="Classement des modèles entraînés pour chaque sujet, du meilleur au moins performant."
+/>
 
-<Tabs items={['🔧 Sujet 1 – Maintenance', '📉 Sujet 2 – Churn', '📈 Sujet 3 – Marketing']} bind:active={tab} />
+<Tabs items={['Sujet 1 · Maintenance', 'Sujet 2 · Churn', 'Sujet 3 · Marketing']} bind:active={tab} />
 
 {#if !loaded}
 	<p class="caption">Chargement…</p>
@@ -64,13 +67,13 @@
 			<StatsGroup group={s1.stats.rul ?? {}} labels={s1.groupLabels.rul ?? {}} rankCol="R²" asPct={false} />
 		{/if}
 	{:else}
-		<Alert kind="warning">⚠️ Les statistiques du Sujet 1 ne sont pas disponibles pour le moment.</Alert>
+		<Alert kind="warning">Les statistiques du Sujet 1 ne sont pas disponibles pour le moment.</Alert>
 	{/if}
 {:else if tab === 1}
 	{#if s2}
 		<StatsGroup group={s2.stats} labels={s2.labels} rankCol="F1-score" />
 	{:else}
-		<Alert kind="warning">⚠️ Les statistiques du Sujet 2 ne sont pas disponibles pour le moment.</Alert>
+		<Alert kind="warning">Les statistiques du Sujet 2 ne sont pas disponibles pour le moment.</Alert>
 	{/if}
 {:else if s3}
 	<Tabs items={['Régression (Ventes)', 'Classification (Performance campagne)']} bind:active={sub3} />
@@ -80,5 +83,5 @@
 		<StatsGroup group={s3.stats.classification ?? {}} labels={s3.labels} rankCol="F1 (macro)" />
 	{/if}
 {:else}
-	<Alert kind="warning">⚠️ Les statistiques du Sujet 3 ne sont pas disponibles pour le moment.</Alert>
+	<Alert kind="warning">Les statistiques du Sujet 3 ne sont pas disponibles pour le moment.</Alert>
 {/if}

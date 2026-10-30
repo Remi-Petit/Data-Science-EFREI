@@ -20,7 +20,6 @@
 		overflow-x: auto;
 		border: 1px solid var(--border);
 		border-radius: var(--radius);
-		margin-bottom: 1rem;
 	}
 	table {
 		width: 100%;
@@ -29,16 +28,26 @@
 	}
 	th {
 		text-align: left;
-		font-weight: 600;
+		font-size: 0.74rem;
+		font-weight: 650;
+		letter-spacing: 0.04em;
+		text-transform: uppercase;
+		color: var(--text-muted);
 		background: var(--bg-secondary);
 		white-space: nowrap;
 	}
 	th,
 	td {
-		padding: 0.5rem 0.75rem;
-		border-bottom: 1px solid rgba(49, 51, 63, 0.1);
+		padding: 0.65rem 0.9rem;
+		border-bottom: 1px solid var(--border);
 	}
 	tbody tr:last-child td {
 		border-bottom: none;
+	}
+	tbody tr:hover {
+		background: var(--primary-soft);
+	}
+	td:first-child {
+		font-weight: 600;
 	}
 </style>

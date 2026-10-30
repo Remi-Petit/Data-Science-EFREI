@@ -26,6 +26,7 @@
 	<span class="label">{label}</span>
 	<div
 		class="box"
+		class:open
 		role="combobox"
 		aria-expanded={open}
 		aria-controls="ms-list"
@@ -46,6 +47,8 @@
 						}}>×</button
 					>
 				</span>
+			{:else}
+				<span class="placeholder">Choisir des modèles…</span>
 			{/each}
 		</div>
 		<span class="chevron">⌄</span>
@@ -65,7 +68,7 @@
 					>
 				</li>
 			{:else}
-				<li class="empty">Aucune option restante</li>
+				<li class="empty">Tous les modèles sont sélectionnés</li>
 			{/each}
 		</ul>
 	{/if}
@@ -74,50 +77,66 @@
 <style>
 	.field {
 		position: relative;
-		margin-bottom: 1rem;
 	}
 	.label {
 		display: block;
-		font-size: 0.875rem;
-		margin-bottom: 0.25rem;
+		font-size: 0.82rem;
+		font-weight: 550;
+		color: var(--text-muted);
+		margin-bottom: 0.35rem;
 	}
 	.box {
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
-		min-height: 2.5rem;
-		padding: 0.25rem 0.5rem;
+		min-height: 2.8rem;
+		padding: 0.3rem 0.7rem;
 		background: var(--bg-secondary);
 		border: 1px solid transparent;
 		border-radius: var(--radius);
 		cursor: pointer;
+		transition: border-color 0.15s, box-shadow 0.15s;
 	}
-	.box:focus-visible {
+	.box:focus-visible,
+	.box.open {
 		border-color: var(--primary);
+		box-shadow: 0 0 0 3px var(--primary-soft);
 		outline: none;
 	}
 	.tags {
 		display: flex;
 		flex-wrap: wrap;
-		gap: 0.25rem;
+		gap: 0.35rem;
 	}
 	.tag {
 		display: inline-flex;
 		align-items: center;
-		gap: 0.35rem;
-		padding: 0.1rem 0.5rem;
-		background: var(--primary);
-		color: #fff;
-		border-radius: 0.35rem;
-		font-size: 0.875rem;
+		gap: 0.4rem;
+		padding: 0.15rem 0.3rem 0.15rem 0.65rem;
+		background: var(--primary-soft);
+		color: var(--primary);
+		border-radius: 999px;
+		font-size: 0.85rem;
+		font-weight: 600;
 	}
 	.tag button {
+		display: grid;
+		place-items: center;
+		width: 1.15rem;
+		height: 1.15rem;
 		border: none;
+		border-radius: 50%;
 		background: transparent;
 		color: inherit;
 		cursor: pointer;
-		padding: 0;
 		line-height: 1;
+	}
+	.tag button:hover {
+		background: var(--primary);
+		color: #fff;
+	}
+	.placeholder {
+		color: var(--text-muted);
 	}
 	.chevron {
 		color: var(--text-muted);
@@ -127,27 +146,29 @@
 		z-index: 20;
 		left: 0;
 		right: 0;
-		margin: 0.25rem 0 0;
-		padding: 0.25rem 0;
+		margin: 0.35rem 0 0;
+		padding: 0.35rem;
 		list-style: none;
-		background: var(--bg);
+		background: var(--surface);
 		border: 1px solid var(--border);
 		border-radius: var(--radius);
-		box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+		box-shadow: var(--shadow-lg);
 	}
 	.list button {
 		width: 100%;
 		text-align: left;
-		padding: 0.4rem 0.75rem;
+		padding: 0.5rem 0.7rem;
 		border: none;
+		border-radius: 0.5rem;
 		background: transparent;
 		cursor: pointer;
 	}
 	.list button:hover {
-		background: var(--bg-secondary);
+		background: var(--primary-soft);
+		color: var(--primary);
 	}
 	.empty {
-		padding: 0.4rem 0.75rem;
+		padding: 0.5rem 0.7rem;
 		color: var(--text-muted);
 	}
 </style>
