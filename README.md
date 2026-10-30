@@ -1,12 +1,14 @@
 # Mise en place rapide avec Docker
+Une seule image : le backend Rust sert l'API (`/api`) et le frontend Svelte.
+
 docker compose up -d --build
 
 ## Éviter le problème de cache
 docker compose build --no-cache
 
 ## Les URLS
-Frontend : http://localhost:40000
-API : http://localhost:40001
+App : http://localhost:40000
+API : http://localhost:40000/api
 
 # Mise en place en local
 Il faut un env virtuel python de préférence

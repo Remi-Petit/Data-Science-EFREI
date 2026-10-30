@@ -1,9 +1,5 @@
 services:
-  fastapi:
-    networks:
-      - reverse-proxy
-
-  streamlit:
+  app:
     networks:
       - reverse-proxy
 

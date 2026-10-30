@@ -102,46 +102,32 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Nom des images
+      - name: Nom de l'image
         id: img
-        run: echo "base=ghcr.io/${GITHUB_REPOSITORY,,}" >> "$GITHUB_OUTPUT"
+        run: echo "name=ghcr.io/${GITHUB_REPOSITORY,,}" >> "$GITHUB_OUTPUT"
 
-      - name: Image backend (modèles inclus)
+      - name: Image de l'app (frontend + backend + modèles)
         uses: docker/build-push-action@v6
         with:
           context: .
-          file: Backend/Dockerfile
+          file: Dockerfile
           push: true
           tags: |
-            ${{ steps.img.outputs.base }}-backend:${{ env.TAG }}
-            ${{ steps.img.outputs.base }}-backend:next-latest
-          cache-from: type=gha,scope=backend
-          cache-to: type=gha,scope=backend,mode=max
-
-      - name: Image frontend
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: Frontend/Dockerfile
-          push: true
-          tags: |
-            ${{ steps.img.outputs.base }}-frontend:${{ env.TAG }}
-            ${{ steps.img.outputs.base }}-frontend:next-latest
-          cache-from: type=gha,scope=frontend
-          cache-to: type=gha,scope=frontend,mode=max
+            ${{ steps.img.outputs.name }}:${{ env.TAG }}
+            ${{ steps.img.outputs.name }}:next-latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
       - name: Création de la release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          BASE: ${{ steps.img.outputs.base }}
+          IMAGE: ${{ steps.img.outputs.name }}
         run: |
           sha256sum backend-linux-x86_64.tar.gz frontend-build.tar.gz models-onnx.tar.gz > SHA256SUMS
           cat > notes.md <<EOF
-          Version du backend Rust (Axum + ONNX Runtime) et du frontend Svelte.
+          Application Data Science EFREI : backend Rust (Axum + ONNX Runtime) qui sert aussi le frontend Svelte.
 
-          Images Docker :
-          - \`${BASE}-backend:${TAG}\` (modèles ONNX inclus)
-          - \`${BASE}-frontend:${TAG}\`
+          Image Docker unique : \`${IMAGE}:${TAG}\` (API sous /api, modèles ONNX inclus).
 
           Assets : binaire backend Linux x86_64, build statique du frontend, modèles ONNX, SHA256SUMS.
           EOF

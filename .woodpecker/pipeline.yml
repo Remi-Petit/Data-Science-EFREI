@@ -49,21 +49,12 @@ steps:
       - lint
 
   # ── Build ─────────────────────────────────────────────
-  - name: build-backend
+  - name: build-app
     image: docker:27
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     commands:
-      - docker build -f Backend/Dockerfile -t backend-app .
-    depends_on:
-      - train
-
-  - name: build-frontend
-    image: docker:27
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-    commands:
-      - docker build -f Frontend/Dockerfile -t frontend-app .
+      - docker build -t data-science-efrei-app .
     depends_on:
       - train
 
@@ -76,36 +67,22 @@ steps:
       - docker compose up -d --build
       - |
         for i in $(seq 1 30); do
-          if docker exec fastapi_efrei_data_science curl -sf http://localhost:8000/health 2>/dev/null; then
-            echo "FastAPI is healthy"
+          if docker exec data_science_efrei_app curl -sf http://localhost:8000/api/health >/dev/null 2>&1 \
+             && docker exec data_science_efrei_app curl -sf http://localhost:8000/ >/dev/null 2>&1; then
+            echo "App is healthy (API + frontend)"
             break
           fi
           if [ "$i" = "30" ]; then
-            echo "FastAPI failed to start"
+            echo "App failed to start"
             docker compose logs
             exit 1
           fi
           echo "Waiting... ($i/30)"
           sleep 2
         done
-      - |
-        for i in $(seq 1 15); do
-          if docker exec streamlit_efrei_data_science wget -q -O /dev/null http://localhost/ 2>/dev/null; then
-            echo "Frontend is healthy"
-            break
-          fi
-          if [ "$i" = "15" ]; then
-            echo "Frontend failed to start"
-            docker compose logs
-            exit 1
-          fi
-          echo "Waiting... ($i/15)"
-          sleep 2
-        done
       - docker compose down
     depends_on:
-      - build-backend
-      - build-frontend
+      - build-app
 
   # ── Deploy (master push uniquement) ───────────────────
   - name: deploy
@@ -117,8 +94,8 @@ steps:
       - docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose.prod.yml up -d --build
       - |
         for i in $(seq 1 30); do
-          if docker exec fastapi_efrei_data_science curl -sf http://localhost:8000/health 2>/dev/null; then
-            echo "Deployed successfully - FastAPI is healthy"
+          if docker exec data_science_efrei_app curl -sf http://localhost:8000/api/health 2>/dev/null; then
+            echo "Deployed successfully - app is healthy"
             break
           fi
           if [ "$i" = "30" ]; then

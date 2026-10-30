@@ -1,27 +1,15 @@
 services:
-  fastapi:
-    container_name: fastapi_efrei_data_science
+  app:
+    container_name: data_science_efrei_app
     build:
       context: .
-      dockerfile: Backend/Dockerfile
+      dockerfile: Dockerfile
       pull: true
     ports:
-      - "${FASTAPI_PORT:-40001}:8000"
+      - "${APP_PORT:-40000}:8000"
     healthcheck:
-      test: ["CMD", "curl", "-sf", "http://localhost:8000/health"]
+      test: ["CMD", "curl", "-sf", "http://localhost:8000/api/health"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 10s
-
-  streamlit:
-    container_name: streamlit_efrei_data_science
-    build:
-      context: .
-      dockerfile: Frontend/Dockerfile
-      pull: true
-    ports:
-      - "${STREAMLIT_PORT:-40000}:80"
-    depends_on:
-      fastapi:
-        condition: service_healthy

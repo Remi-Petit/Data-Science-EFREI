@@ -7,7 +7,7 @@ export default defineConfig({
 	plugins: [sveltekit()],
 	server: {
 		proxy: {
-			'/api': { target: API_TARGET, rewrite: (path) => path.replace(/^\/api/, '') }
+			'/api': API_TARGET
 		}
 	}
 });
