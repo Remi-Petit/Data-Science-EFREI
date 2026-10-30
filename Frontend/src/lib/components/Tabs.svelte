@@ -16,7 +16,8 @@
 
 <style>
 	.tabs {
-		display: inline-flex;
+		display: flex;
+		width: fit-content;
 		max-width: 100%;
 		gap: 0.25rem;
 		padding: 0.3rem;
