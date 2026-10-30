@@ -20,7 +20,10 @@ impl OnnxModel {
         let session = Session::builder(env)
             .and_then(|mut b| b.commit_from_file(path))
             .map_err(|e| e.to_string())?;
-        Ok(Self { session: Mutex::new(session), classes })
+        Ok(Self {
+            session: Mutex::new(session),
+            classes,
+        })
     }
 
     fn run(&self, features: &[f32], output_idx: usize) -> Result<Vec<f32>, ApiError> {
@@ -44,8 +47,12 @@ impl OnnxModel {
         let outputs = session
             .run(ort::inputs!["X" => input])
             .map_err(ApiError::internal)?;
-        let (_, label) = outputs[0].try_extract_tensor::<i64>().map_err(ApiError::internal)?;
-        let (_, proba) = outputs[1].try_extract_tensor::<f32>().map_err(ApiError::internal)?;
+        let (_, label) = outputs[0]
+            .try_extract_tensor::<i64>()
+            .map_err(ApiError::internal)?;
+        let (_, proba) = outputs[1]
+            .try_extract_tensor::<f32>()
+            .map_err(ApiError::internal)?;
         match (label.first(), proba.get(1)) {
             (Some(l), Some(p)) => Ok((*l, f64::from(*p))),
             _ => Err(ApiError::internal("sortie ONNX invalide")),
@@ -80,11 +87,16 @@ impl ModelGroup {
 }
 
 pub fn env_path(var: &str, default: impl FnOnce() -> PathBuf) -> PathBuf {
-    env::var(var).map(PathBuf::from).unwrap_or_else(|_| default())
+    env::var(var)
+        .map(PathBuf::from)
+        .unwrap_or_else(|_| default())
 }
 
 pub fn load_config(path: &Path) -> Map<String, Value> {
-    match fs::read_to_string(path).ok().and_then(|s| serde_json::from_str(&s).ok()) {
+    match fs::read_to_string(path)
+        .ok()
+        .and_then(|s| serde_json::from_str(&s).ok())
+    {
         Some(Value::Object(m)) => m,
         _ => {
             eprintln!("[models] Config absente ou invalide : {}", path.display());
@@ -125,7 +137,9 @@ pub fn load_group(models_dir: &Path, group: Option<&Value>) -> ModelGroup {
 
 /// Lit tous les *.json d'un dossier, triés par nom : {nom_sans_extension: contenu}.
 pub fn read_json_dir(dir: &Path) -> Vec<(String, Value)> {
-    let Ok(rd) = fs::read_dir(dir) else { return Vec::new() };
+    let Ok(rd) = fs::read_dir(dir) else {
+        return Vec::new();
+    };
     let mut files: Vec<_> = rd
         .filter_map(Result::ok)
         .filter(|e| e.path().extension().is_some_and(|x| x == "json"))
@@ -159,7 +173,9 @@ pub fn labels_of(config: &Map<String, Value>) -> Map<String, Value> {
 
 pub fn validate_models(requested: &[String], group: &ModelGroup) -> Result<Vec<String>, ApiError> {
     if requested.is_empty() {
-        return Err(ApiError::unprocessable("La liste 'models' ne peut pas être vide."));
+        return Err(ApiError::unprocessable(
+            "La liste 'models' ne peut pas être vide.",
+        ));
     }
     let mut unique: Vec<String> = Vec::new();
     for m in requested {

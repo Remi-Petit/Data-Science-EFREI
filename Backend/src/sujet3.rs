@@ -1,5 +1,9 @@
 use crate::{error::*, models::*};
-use axum::{extract::State, routing::{get, post}, Json, Router};
+use axum::{
+    extract::State,
+    routing::{get, post},
+    Json, Router,
+};
 use serde::Deserialize;
 use serde_json::{json, Map, Value};
 use std::{path::PathBuf, sync::Arc};
@@ -20,7 +24,11 @@ impl Sujet3 {
         let models_dir = env_path("S3_MODELS_DIR", || base.join("models"));
         let stats_dir = env_path("S3_STATS_DIR", || base.join("models_stats"));
         let config = load_config(&base.join("models_config.json"));
-        Self { regression: load_group(&models_dir, config.get("regression")), stats_dir, config }
+        Self {
+            regression: load_group(&models_dir, config.get("regression")),
+            stats_dir,
+            config,
+        }
     }
 }
 
@@ -66,7 +74,10 @@ struct MarketingData {
     models: Vec<String>,
 }
 
-async fn predict(State(st): State<Arc<crate::AppState>>, Json(d): Json<MarketingData>) -> ApiResult {
+async fn predict(
+    State(st): State<Arc<crate::AppState>>,
+    Json(d): Json<MarketingData>,
+) -> ApiResult {
     let s = &st.s3;
     let influencer = INFLUENCERS
         .iter()
@@ -74,7 +85,10 @@ async fn predict(State(st): State<Arc<crate::AppState>>, Json(d): Json<Marketing
         .map(|(_, v)| *v)
         .ok_or_else(|| {
             let allowed: Vec<_> = INFLUENCERS.iter().map(|(k, _)| *k).collect();
-            ApiError::unprocessable(format!("Influenceur invalide : {}. Valeurs : {allowed:?}", d.influencer))
+            ApiError::unprocessable(format!(
+                "Influenceur invalide : {}. Valeurs : {allowed:?}",
+                d.influencer
+            ))
         })?;
     let names = validate_models(&d.models, &s.regression)?;
 
@@ -82,8 +96,15 @@ async fn predict(State(st): State<Arc<crate::AppState>>, Json(d): Json<Marketing
     let share = |v: f64| if total > 0.0 { v / total } else { 0.0 };
     // Ordre = IA/Sujet_3/src/preprocessing.py::FEATURES
     let x: Vec<f32> = [
-        d.tv, d.radio, d.social_media, influencer as f64, total,
-        share(d.tv), share(d.radio), share(d.social_media), d.tv * d.social_media,
+        d.tv,
+        d.radio,
+        d.social_media,
+        influencer as f64,
+        total,
+        share(d.tv),
+        share(d.radio),
+        share(d.social_media),
+        d.tv * d.social_media,
     ]
     .iter()
     .map(|v| *v as f32)
@@ -92,8 +113,18 @@ async fn predict(State(st): State<Arc<crate::AppState>>, Json(d): Json<Marketing
     let mut results = Map::new();
     for name in &names {
         let sales = s.regression.get(name).unwrap().predict_value(&x)? as f64;
-        let perf = if sales < PERF_LOW { "Low" } else if sales < PERF_HIGH { "Medium" } else { "High" };
-        let roi = if total > 0.0 { json!(round4(sales / total)) } else { Value::Null };
+        let perf = if sales < PERF_LOW {
+            "Low"
+        } else if sales < PERF_HIGH {
+            "Medium"
+        } else {
+            "High"
+        };
+        let roi = if total > 0.0 {
+            json!(round4(sales / total))
+        } else {
+            Value::Null
+        };
         results.insert(
             name.clone(),
             json!({ "sales_prediction": round4(sales), "performance": perf, "roi_estimate": roi }),

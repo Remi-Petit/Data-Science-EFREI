@@ -1,5 +1,9 @@
 use crate::{error::*, models::*};
-use axum::{extract::State, routing::{get, post}, Json, Router};
+use axum::{
+    extract::State,
+    routing::{get, post},
+    Json, Router,
+};
 use serde::Deserialize;
 use serde_json::{json, Map, Value};
 use std::{path::PathBuf, sync::Arc};
@@ -16,7 +20,11 @@ impl Sujet2 {
         let models_dir = env_path("S2_MODELS_DIR", || base.join("models"));
         let stats_dir = env_path("S2_STATS_DIR", || base.join("models_stats"));
         let config = load_config(&base.join("models_config.json"));
-        Self { churn: load_group(&models_dir, config.get("churn")), stats_dir, config }
+        Self {
+            churn: load_group(&models_dir, config.get("churn")),
+            stats_dir,
+            config,
+        }
     }
 }
 
@@ -87,10 +95,13 @@ struct ChurnData {
 }
 
 fn enc(field: &str, value: &str, map: &[(&str, f32)]) -> Result<f32, ApiError> {
-    map.iter().find(|(k, _)| *k == value).map(|(_, v)| *v).ok_or_else(|| {
-        let allowed: Vec<_> = map.iter().map(|(k, _)| *k).collect();
-        ApiError::unprocessable(format!("{field} invalide : {value}. Valeurs : {allowed:?}"))
-    })
+    map.iter()
+        .find(|(k, _)| *k == value)
+        .map(|(_, v)| *v)
+        .ok_or_else(|| {
+            let allowed: Vec<_> = map.iter().map(|(k, _)| *k).collect();
+            ApiError::unprocessable(format!("{field} invalide : {value}. Valeurs : {allowed:?}"))
+        })
 }
 
 async fn predict(State(st): State<Arc<crate::AppState>>, Json(d): Json<ChurnData>) -> ApiResult {
@@ -99,23 +110,74 @@ async fn predict(State(st): State<Arc<crate::AppState>>, Json(d): Json<ChurnData
 
     // Ordre = IA/Sujet_2/src/preprocessing.py::FEATURES
     let x: Vec<f32> = [
-        d.age, d.tenure_months, d.monthly_logins, d.weekly_active_days, d.avg_session_time,
-        d.features_used, d.usage_growth_rate, d.last_login_days_ago, d.monthly_fee,
-        d.total_revenue, d.payment_failures, d.avg_resolution_time, d.csat_score,
-        d.escalations, d.email_open_rate, d.marketing_click_rate, d.nps_score, d.referral_count,
+        d.age,
+        d.tenure_months,
+        d.monthly_logins,
+        d.weekly_active_days,
+        d.avg_session_time,
+        d.features_used,
+        d.usage_growth_rate,
+        d.last_login_days_ago,
+        d.monthly_fee,
+        d.total_revenue,
+        d.payment_failures,
+        d.avg_resolution_time,
+        d.csat_score,
+        d.escalations,
+        d.email_open_rate,
+        d.marketing_click_rate,
+        d.nps_score,
+        d.referral_count,
     ]
     .iter()
     .map(|v| *v as f32)
     .chain([
         enc("gender", &d.gender, &[("Female", 0.), ("Male", 1.)])?,
-        enc("customer_segment", &d.customer_segment, &[("Enterprise", 0.), ("Individual", 1.), ("SME", 2.)])?,
-        enc("signup_channel", &d.signup_channel, &[("Mobile", 0.), ("Referral", 1.), ("Web", 2.)])?,
-        enc("contract_type", &d.contract_type, &[("Monthly", 0.), ("Quarterly", 1.), ("Yearly", 2.)])?,
-        enc("payment_method", &d.payment_method, &[("Bank Transfer", 0.), ("Card", 1.), ("PayPal", 2.)])?,
-        enc("discount_applied", &d.discount_applied, &[("No", 0.), ("Yes", 1.)])?,
-        enc("price_increase_last_3m", &d.price_increase_last_3m, &[("No", 0.), ("Yes", 1.)])?,
-        enc("survey_response", &d.survey_response, &[("Neutral", 0.), ("Satisfied", 1.), ("Unsatisfied", 2.)])?,
-        enc("complaint_type", &d.complaint_type, &[("Billing", 0.), ("Service", 1.), ("Technical", 2.), ("Unknown", 3.)])?,
+        enc(
+            "customer_segment",
+            &d.customer_segment,
+            &[("Enterprise", 0.), ("Individual", 1.), ("SME", 2.)],
+        )?,
+        enc(
+            "signup_channel",
+            &d.signup_channel,
+            &[("Mobile", 0.), ("Referral", 1.), ("Web", 2.)],
+        )?,
+        enc(
+            "contract_type",
+            &d.contract_type,
+            &[("Monthly", 0.), ("Quarterly", 1.), ("Yearly", 2.)],
+        )?,
+        enc(
+            "payment_method",
+            &d.payment_method,
+            &[("Bank Transfer", 0.), ("Card", 1.), ("PayPal", 2.)],
+        )?,
+        enc(
+            "discount_applied",
+            &d.discount_applied,
+            &[("No", 0.), ("Yes", 1.)],
+        )?,
+        enc(
+            "price_increase_last_3m",
+            &d.price_increase_last_3m,
+            &[("No", 0.), ("Yes", 1.)],
+        )?,
+        enc(
+            "survey_response",
+            &d.survey_response,
+            &[("Neutral", 0.), ("Satisfied", 1.), ("Unsatisfied", 2.)],
+        )?,
+        enc(
+            "complaint_type",
+            &d.complaint_type,
+            &[
+                ("Billing", 0.),
+                ("Service", 1.),
+                ("Technical", 2.),
+                ("Unknown", 3.),
+            ],
+        )?,
         (d.total_revenue / (d.tenure_months + 1.0)) as f32,
         (d.weekly_active_days * d.avg_session_time) as f32,
         (d.support_tickets * (d.avg_resolution_time + 1.0)) as f32,
